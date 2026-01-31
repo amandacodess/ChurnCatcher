@@ -1,5 +1,10 @@
 # ChurnCatcher 🎯
 
+![Python](https://img.shields.io/badge/Python-3.14-blue?logo=python)
+![Streamlit](https://img.shields.io/badge/Streamlit-Live-FF4B4B?logo=streamlit)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-ML-orange?logo=scikitlearn)
+![License](https://img.shields.io/badge/License-MIT-green)
+
 A machine learning system that catches customers before they churn! This project uses advanced analytics and multiple ML models to predict customer churn and help businesses take proactive retention measures.
 
 ## 📊 Project Overview
@@ -108,6 +113,8 @@ This project is open source and available under the MIT License.
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+Want to try it live? https://churnchaser-project.streamlit.app/
 
 ---
 
