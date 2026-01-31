@@ -114,7 +114,9 @@ This project is open source and available under the MIT License.
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## Want to try it live? https://churnchaser-project.streamlit.app/
+## Want to try it live?
+
+https://churnchaser-project.streamlit.app/
 
 ---
 
