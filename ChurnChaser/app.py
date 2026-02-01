@@ -14,6 +14,7 @@ from datetime import datetime
 # Page config
 st.set_page_config(
     page_title="ChurnCatcher 🎯",
+    page_icon="🎯",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -231,7 +232,7 @@ def train_models(X, y):
 # Main App
 def main():
     # Header
-    st.markdown('<div class="main-header">🎯 ChurnCatcher</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header">ChurnCatcher</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">Predict Customer Churn with Machine Learning</div>', unsafe_allow_html=True)
     
     # Sidebar
