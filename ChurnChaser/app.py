@@ -3,444 +3,225 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, roc_curve
-import io
-from datetime import datetime
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.metrics import roc_auc_score, roc_curve, confusion_matrix
 
-# Page config
+# ===================== PAGE CONFIG =====================
 st.set_page_config(
-    page_title="ChurnCatcher 🎯",
+    page_title="ChurnCatcher",
     page_icon="🎯",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
-# Custom CSS
-st.markdown("""
-    <style>
-    .main-header {
-        font-size: 3rem;
-        font-weight: bold;
-        text-align: center;
-        color: #FF4B4B;
-        margin-bottom: 1rem;
-    }
-    .sub-header {
-        text-align: center;
-        color: #666;
-        margin-bottom: 2rem;
-    }
-    .metric-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 1.5rem;
-        border-radius: 10px;
-        color: white;
-        text-align: center;
-    }
-    </style>
+# ===================== THEME TOGGLE =====================
+if "dark" not in st.session_state:
+    st.session_state.dark = False
+
+st.sidebar.title("Settings")
+st.session_state.dark = st.sidebar.toggle("🌙 Dark mode", value=st.session_state.dark)
+
+# ===================== COLORS =====================
+if st.session_state.dark:
+    BG = "#0b1220"
+    CARD = "#111827"
+    TEXT = "#e5e7eb"
+    MUTED = "#9ca3af"
+    ACCENT = "#3b82f6"
+else:
+    BG = "#f8fafc"
+    CARD = "#ffffff"
+    TEXT = "#0f172a"
+    MUTED = "#64748b"
+    ACCENT = "#2563eb"
+
+# ===================== CSS =====================
+st.markdown(f"""
+<style>
+.stApp {{
+    background-color: {BG};
+    color: {TEXT};
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}}
+
+.block-container {{
+    max-width: 1200px;
+}}
+
+.card {{
+    background: {CARD};
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}}
+
+.hero {{
+    text-align: center;
+    margin: 3rem 0 4rem 0;
+}}
+
+.hero h1 {{
+    font-size: 3rem;
+    font-weight: 800;
+}}
+
+.hero p {{
+    font-size: 1.2rem;
+    color: {MUTED};
+}}
+
+.kpi-label {{
+    font-size: 0.75rem;
+    color: {MUTED};
+    text-transform: uppercase;
+}}
+
+.kpi-value {{
+    font-size: 2rem;
+    font-weight: 700;
+}}
+
+section[data-testid="stSidebar"] {{
+    background-color: {CARD};
+}}
+</style>
 """, unsafe_allow_html=True)
 
-# Helper Functions
+# ===================== DATA =====================
 @st.cache_data
-def generate_sample_data(n_samples=5000):
-    """Generate synthetic customer churn data"""
+def load_data(n=5000):
     np.random.seed(42)
-    
-    data = {
-        'customer_id': range(1, n_samples + 1),
-        'age': np.random.randint(18, 70, n_samples),
-        'tenure_months': np.random.randint(1, 72, n_samples),
-        'monthly_charges': np.random.uniform(20, 150, n_samples),
-        'total_charges': np.random.uniform(100, 8000, n_samples),
-        'contract_type': np.random.choice(['Month-to-month', 'One year', 'Two year'], n_samples, p=[0.5, 0.3, 0.2]),
-        'payment_method': np.random.choice(['Electronic check', 'Credit card', 'Bank transfer', 'Mailed check'], n_samples),
-        'internet_service': np.random.choice(['DSL', 'Fiber optic', 'No'], n_samples, p=[0.4, 0.4, 0.2]),
-        'tech_support': np.random.choice(['Yes', 'No'], n_samples),
-        'online_security': np.random.choice(['Yes', 'No'], n_samples),
-        'num_services': np.random.randint(0, 6, n_samples),
-        'customer_service_calls': np.random.randint(0, 10, n_samples)
-    }
-    
-    df = pd.DataFrame(data)
-    
+    df = pd.DataFrame({
+        "tenure": np.random.randint(1, 72, n),
+        "monthly_charges": np.random.uniform(20, 150, n),
+        "service_calls": np.random.randint(0, 10, n),
+        "contract": np.random.choice(["Month-to-month", "One year", "Two year"], n),
+    })
     churn_prob = (
-        0.1 +
-        0.3 * (df['contract_type'] == 'Month-to-month').astype(int) +
-        0.2 * (df['tenure_months'] < 12).astype(int) +
-        0.15 * (df['customer_service_calls'] > 4).astype(int) +
-        0.1 * (df['monthly_charges'] > 100).astype(int) -
-        0.2 * (df['contract_type'] == 'Two year').astype(int)
+        0.30 * (df["contract"] == "Month-to-month") +
+        0.25 * (df["tenure"] < 12) +
+        0.20 * (df["service_calls"] > 4)
     )
-    churn_prob = np.clip(churn_prob, 0, 1)
-    df['churn'] = (np.random.random(n_samples) < churn_prob).astype(int)
-    
+    df["churn"] = (np.random.rand(n) < churn_prob).astype(int)
     return df
 
-def preprocess_data(df):
-    """Preprocess data for modeling"""
-    df_processed = df.drop('customer_id', axis=1, errors='ignore')
-    
-    # Encode categorical variables
-    label_encoders = {}
-    categorical_cols = df_processed.select_dtypes(include=['object']).columns
-    
-    for col in categorical_cols:
-        le = LabelEncoder()
-        df_processed[col] = le.fit_transform(df_processed[col])
-        label_encoders[col] = le
-    
-    if 'churn' in df_processed.columns:
-        X = df_processed.drop('churn', axis=1)
-        y = df_processed['churn']
-        return X, y, label_encoders
-    else:
-        return df_processed, None, label_encoders
+df = load_data()
 
-@st.cache_resource
-def train_models(X, y):
-    """Train multiple models"""
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
-    
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_test_scaled = scaler.transform(X_test)
-    
-    models = {
-        'Logistic Regression': LogisticRegression(random_state=42, max_iter=1000),
-        'Random Forest': RandomForestClassifier(n_estimators=100, random_state=42),
-        'Gradient Boosting': GradientBoostingClassifier(n_estimators=100, random_state=42)
-    }
-    
-    results = {}
-    
-    for name, model in models.items():
-        model.fit(X_train_scaled, y_train)
-        y_pred = model.predict(X_test_scaled)
-        y_pred_proba = model.predict_proba(X_test_scaled)[:, 1]
-        
-        accuracy = model.score(X_test_scaled, y_test)
-        auc_score = roc_auc_score(y_test, y_pred_proba)
-        
-        results[name] = {
-            'model': model,
-            'accuracy': accuracy,
-            'auc': auc_score,
-            'predictions': y_pred,
-            'probabilities': y_pred_proba
-        }
-    
-    return results, X_test, y_test, scaler
+# ===================== HERO =====================
+st.markdown("""
+<div class="hero">
+    <h1>ChurnCatcher</h1>
+    <p>Predict churn. Understand behavior. Reduce revenue loss.</p>
+</div>
+""", unsafe_allow_html=True)
 
-# Main App
-def main():
-    # Header
-    st.markdown('<div class="main-header">🎯 ChurnCatcher</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Predict Customer Churn with Machine Learning</div>', unsafe_allow_html=True)
-    
-    # Sidebar
-    st.sidebar.title("⚙️ Settings")
-    
-    page = st.sidebar.radio("Navigation", [
-        "📊 Dashboard",
-        "🤖 Model Training",
-        "🔮 Predictions",
-        "📈 Analytics"
-    ])
-    
-    # Load or generate data
-    data_source = st.sidebar.radio("Data Source", ["Generate Sample Data", "Upload CSV"])
-    
-    if data_source == "Generate Sample Data":
-        n_samples = st.sidebar.slider("Number of Samples", 1000, 10000, 5000, 500)
-        df = generate_sample_data(n_samples)
-    else:
-        uploaded_file = st.sidebar.file_uploader("Upload CSV", type=['csv'])
-        if uploaded_file:
-            df = pd.read_csv(uploaded_file)
-        else:
-            st.warning("Please upload a CSV file or select 'Generate Sample Data'")
-            return
-    
-    # Dashboard Page
-    if page == "📊 Dashboard":
-        st.header("📊 Customer Churn Overview")
-        
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.metric("Total Customers", f"{len(df):,}")
-        with col2:
-            churn_rate = df['churn'].mean() * 100
-            st.metric("Churn Rate", f"{churn_rate:.1f}%")
-        with col3:
-            st.metric("Retained", f"{(df['churn'] == 0).sum():,}")
-        with col4:
-            st.metric("Churned", f"{(df['churn'] == 1).sum():,}")
-        
-        st.markdown("---")
-        
-        # Visualizations
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Churn Distribution
-            churn_counts = df['churn'].value_counts()
-            fig = go.Figure(data=[go.Pie(
-                labels=['Retained', 'Churned'],
-                values=churn_counts.values,
-                hole=0.4,
-                marker_colors=['#2ecc71', '#e74c3c']
-            )])
-            fig.update_layout(title="Churn Distribution", height=400)
-            st.plotly_chart(fig, use_container_width=True)
-        
-        with col2:
-            # Churn by Contract Type
-            contract_churn = pd.crosstab(df['contract_type'], df['churn'], normalize='index') * 100
-            fig = px.bar(
-                contract_churn,
-                barmode='group',
-                title="Churn Rate by Contract Type",
-                labels={'value': 'Percentage (%)', 'contract_type': 'Contract Type'},
-                color_discrete_map={0: '#2ecc71', 1: '#e74c3c'}
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Monthly Charges Distribution
-            fig = px.box(df, x='churn', y='monthly_charges', 
-                        title="Monthly Charges by Churn Status",
-                        labels={'churn': 'Churn (0=No, 1=Yes)', 'monthly_charges': 'Monthly Charges ($)'},
-                        color='churn',
-                        color_discrete_map={0: '#2ecc71', 1: '#e74c3c'})
-            st.plotly_chart(fig, use_container_width=True)
-        
-        with col2:
-            # Tenure Distribution
-            fig = px.histogram(df, x='tenure_months', color='churn',
-                             title="Tenure Distribution by Churn",
-                             labels={'tenure_months': 'Tenure (months)', 'churn': 'Churned'},
-                             color_discrete_map={0: '#2ecc71', 1: '#e74c3c'},
-                             barmode='overlay')
-            fig.update_traces(opacity=0.7)
-            st.plotly_chart(fig, use_container_width=True)
-        
-        # Data Preview
-        st.subheader("📋 Data Preview")
-        st.dataframe(df.head(100), use_container_width=True)
-    
-    # Model Training Page
-    elif page == "🤖 Model Training":
-        st.header("🤖 Model Training & Evaluation")
-        
-        if st.button("🚀 Train Models", type="primary"):
-            with st.spinner("Training models... This may take a moment..."):
-                X, y, _ = preprocess_data(df)
-                results, X_test, y_test, scaler = train_models(X, y)
-                
-                # Store in session state
-                st.session_state['models'] = results
-                st.session_state['X_test'] = X_test
-                st.session_state['y_test'] = y_test
-                st.session_state['scaler'] = scaler
-                
-                st.success("✅ Models trained successfully!")
-        
-        if 'models' in st.session_state:
-            results = st.session_state['models']
-            
-            st.subheader("📊 Model Performance Comparison")
-            
-            # Performance Metrics
-            col1, col2, col3 = st.columns(3)
-            
-            for i, (name, result) in enumerate(results.items()):
-                with [col1, col2, col3][i]:
-                    st.markdown(f"### {name}")
-                    st.metric("Accuracy", f"{result['accuracy']:.2%}")
-                    st.metric("AUC-ROC", f"{result['auc']:.3f}")
-            
-            st.markdown("---")
-            
-            # ROC Curves
-            st.subheader("📈 ROC Curves")
-            fig = go.Figure()
-            
-            for name, result in results.items():
-                fpr, tpr, _ = roc_curve(st.session_state['y_test'], result['probabilities'])
-                fig.add_trace(go.Scatter(
-                    x=fpr, y=tpr,
-                    name=f"{name} (AUC={result['auc']:.3f})",
-                    mode='lines'
-                ))
-            
-            fig.add_trace(go.Scatter(
-                x=[0, 1], y=[0, 1],
-                name='Random',
-                mode='lines',
-                line=dict(dash='dash', color='gray')
-            ))
-            
-            fig.update_layout(
-                title="ROC Curves - Model Comparison",
-                xaxis_title="False Positive Rate",
-                yaxis_title="True Positive Rate",
-                height=500
-            )
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # Confusion Matrix
-            st.subheader("🔍 Confusion Matrix")
-            model_choice = st.selectbox("Select Model", list(results.keys()))
-            
-            cm = confusion_matrix(st.session_state['y_test'], results[model_choice]['predictions'])
-            
-            fig = go.Figure(data=go.Heatmap(
-                z=cm,
-                x=['Retained', 'Churned'],
-                y=['Retained', 'Churned'],
-                colorscale='Blues',
-                text=cm,
-                texttemplate='%{text}',
-                textfont={"size": 20}
-            ))
-            fig.update_layout(
-                title=f"Confusion Matrix - {model_choice}",
-                xaxis_title="Predicted",
-                yaxis_title="Actual",
-                height=400
-            )
-            st.plotly_chart(fig, use_container_width=True)
-    
-    # Predictions Page
-    elif page == "🔮 Predictions":
-        st.header("🔮 Make Predictions")
-        
-        if 'models' not in st.session_state:
-            st.warning("⚠️ Please train models first in the 'Model Training' page!")
-            return
-        
-        st.subheader("Upload Customer Data for Prediction")
-        
-        pred_file = st.file_uploader("Upload CSV with customer data", type=['csv'], key='prediction')
-        
-        if pred_file:
-            pred_df = pd.read_csv(pred_file)
-            st.write("📋 Uploaded Data Preview:")
-            st.dataframe(pred_df.head(), use_container_width=True)
-            
-            model_choice = st.selectbox("Select Model for Prediction", list(st.session_state['models'].keys()))
-            
-            if st.button("🎯 Predict Churn", type="primary"):
-                with st.spinner("Making predictions..."):
-                    X_pred, _, _ = preprocess_data(pred_df)
-                    X_pred_scaled = st.session_state['scaler'].transform(X_pred)
-                    
-                    model = st.session_state['models'][model_choice]['model']
-                    predictions = model.predict(X_pred_scaled)
-                    probabilities = model.predict_proba(X_pred_scaled)[:, 1]
-                    
-                    pred_df['Churn_Prediction'] = predictions
-                    pred_df['Churn_Probability'] = probabilities
-                    pred_df['Risk_Level'] = pd.cut(probabilities, 
-                                                    bins=[0, 0.3, 0.7, 1.0],
-                                                    labels=['Low', 'Medium', 'High'])
-                    
-                    st.success("✅ Predictions completed!")
-                    
-                    # Results
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        st.metric("High Risk Customers", (pred_df['Risk_Level'] == 'High').sum())
-                    with col2:
-                        st.metric("Medium Risk Customers", (pred_df['Risk_Level'] == 'Medium').sum())
-                    with col3:
-                        st.metric("Low Risk Customers", (pred_df['Risk_Level'] == 'Low').sum())
-                    
-                    st.markdown("---")
-                    st.subheader("📊 Prediction Results")
-                    st.dataframe(pred_df, use_container_width=True)
-                    
-                    # Download button
-                    csv = pred_df.to_csv(index=False)
-                    st.download_button(
-                        label="📥 Download Predictions as CSV",
-                        data=csv,
-                        file_name=f"churn_predictions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                        mime="text/csv"
-                    )
-        else:
-            st.info("💡 Tip: Upload a CSV file with customer data (without the 'churn' column) to make predictions!")
-    
-    # Analytics Page
-    elif page == "📈 Analytics":
-        st.header("📈 Advanced Analytics")
-        
-        if 'models' not in st.session_state:
-            st.warning("⚠️ Please train models first in the 'Model Training' page!")
-            return
-        
-        # Feature Importance
-        st.subheader("🎯 Feature Importance Analysis")
-        
-        # Get feature importance from Random Forest
-        if 'Random Forest' in st.session_state['models']:
-            model = st.session_state['models']['Random Forest']['model']
-            X, y, _ = preprocess_data(df)
-            
-            importances = model.feature_importances_
-            feature_names = X.columns
-            
-            importance_df = pd.DataFrame({
-                'Feature': feature_names,
-                'Importance': importances
-            }).sort_values('Importance', ascending=False)
-            
-            fig = px.bar(importance_df, x='Importance', y='Feature', 
-                        orientation='h',
-                        title="Feature Importance (Random Forest)",
-                        color='Importance',
-                        color_continuous_scale='Viridis')
-            fig.update_layout(height=500)
-            st.plotly_chart(fig, use_container_width=True)
-        
-        st.markdown("---")
-        
-        # Customer Segmentation
-        st.subheader("👥 Customer Segmentation by Risk")
-        
-        X, y, _ = preprocess_data(df)
-        X_scaled = st.session_state['scaler'].transform(X)
-        model = st.session_state['models']['Random Forest']['model']
-        
-        df['Churn_Probability'] = model.predict_proba(X_scaled)[:, 1]
-        df['Risk_Level'] = pd.cut(df['Churn_Probability'], 
-                                   bins=[0, 0.3, 0.7, 1.0],
-                                   labels=['Low', 'Medium', 'High'])
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            risk_counts = df['Risk_Level'].value_counts()
-            fig = px.pie(values=risk_counts.values, names=risk_counts.index,
-                        title="Customer Distribution by Risk Level",
-                        color=risk_counts.index,
-                        color_discrete_map={'Low': '#2ecc71', 'Medium': '#f39c12', 'High': '#e74c3c'})
-            st.plotly_chart(fig, use_container_width=True)
-        
-        with col2:
-            fig = px.scatter(df, x='tenure_months', y='monthly_charges',
-                           color='Risk_Level',
-                           title="Risk Level by Tenure and Monthly Charges",
-                           color_discrete_map={'Low': '#2ecc71', 'Medium': '#f39c12', 'High': '#e74c3c'},
-                           opacity=0.6)
-            st.plotly_chart(fig, use_container_width=True)
+# ===================== PROBLEM → INSIGHT → IMPACT =====================
+st.markdown("## The Business Case")
+c1, c2, c3 = st.columns(3)
 
-if __name__ == "__main__":
-    main()
+for col, title, text in zip(
+    [c1, c2, c3],
+    ["Problem", "Insight", "Impact"],
+    [
+        "Churn is expensive and often detected too late.",
+        "Usage behavior predicts churn early.",
+        "Targeted retention increases lifetime value."
+    ]
+):
+    col.markdown(f"""
+    <div class="card">
+        <h3>{title}</h3>
+        <p>{text}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ===================== KPIs =====================
+st.markdown("## Executive Overview")
+k1, k2, k3, k4 = st.columns(4)
+
+k1.markdown(f"<div class='card'><div class='kpi-label'>Customers</div><div class='kpi-value'>{len(df):,}</div></div>", unsafe_allow_html=True)
+k2.markdown(f"<div class='card'><div class='kpi-label'>Churn Rate</div><div class='kpi-value'>{df['churn'].mean()*100:.1f}%</div></div>", unsafe_allow_html=True)
+k3.markdown(f"<div class='card'><div class='kpi-label'>High Risk</div><div class='kpi-value'>{(df['tenure']<12).sum():,}</div></div>", unsafe_allow_html=True)
+k4.markdown(f"<div class='card'><div class='kpi-label'>Avg Charges</div><div class='kpi-value'>${df['monthly_charges'].mean():.0f}</div></div>", unsafe_allow_html=True)
+
+# ===================== ANALYTICS =====================
+st.markdown("## Behavioral Insights")
+a1, a2 = st.columns(2)
+
+fig = px.box(df, x="churn", y="monthly_charges", color="churn")
+fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color=TEXT))
+a1.plotly_chart(fig, use_container_width=True)
+
+fig = px.histogram(df, x="tenure", color="churn", opacity=0.7)
+fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color=TEXT))
+a2.plotly_chart(fig, use_container_width=True)
+
+# ===================== MODELING =====================
+st.markdown("## Model Performance")
+
+df_model = df.copy()
+df_model["contract"] = LabelEncoder().fit_transform(df_model["contract"])
+
+X = df_model.drop("churn", axis=1)
+y = df_model["churn"]
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+models = {
+    "Logistic Regression": LogisticRegression(max_iter=1000),
+    "Random Forest": RandomForestClassifier(n_estimators=150),
+    "Gradient Boosting": GradientBoostingClassifier()
+}
+
+roc_results = {}
+
+for name, model in models.items():
+    model.fit(X_train_scaled, y_train)
+    probs = model.predict_proba(X_test_scaled)[:, 1]
+    roc_results[name] = (probs, roc_auc_score(y_test, probs))
+
+# ===================== ROC CURVE =====================
+fig = go.Figure()
+for name, (probs, auc) in roc_results.items():
+    fpr, tpr, _ = roc_curve(y_test, probs)
+    fig.add_trace(go.Scatter(x=fpr, y=tpr, mode="lines", name=f"{name} (AUC {auc:.2f})"))
+
+fig.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines", line=dict(dash="dash"), name="Baseline"))
+fig.update_layout(
+    title="ROC Curve",
+    xaxis_title="False Positive Rate",
+    yaxis_title="True Positive Rate",
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)",
+    font=dict(color=TEXT)
+)
+st.plotly_chart(fig, use_container_width=True)
+
+# ===================== PREDICTION PANEL =====================
+st.markdown("## Predict a Customer")
+
+with st.form("predict"):
+    tenure = st.slider("Tenure (months)", 1, 72, 12)
+    charges = st.slider("Monthly Charges", 20, 150, 70)
+    calls = st.slider("Service Calls", 0, 10, 2)
+    contract = st.selectbox("Contract", ["Month-to-month", "One year", "Two year"])
+    submit = st.form_submit_button("Predict")
+
+if submit:
+    contract_enc = LabelEncoder().fit(df["contract"]).transform([contract])[0]
+    input_data = scaler.transform([[tenure, charges, calls, contract_enc]])
+    prob = models["Gradient Boosting"].predict_proba(input_data)[0][1]
+
+    st.markdown(f"""
+    <div class="card">
+        <h3>Churn Risk</h3>
+        <h1>{prob*100:.1f}%</h1>
+    </div>
+    """, unsafe_allow_html=True)
