@@ -21,6 +21,13 @@ st.set_page_config(
 
 st.markdown("""
 <style>
+<div style="text-align:center; margin-bottom: 0.5rem;">
+    <span style="font-size:3.2rem;">🎯</span>
+    <span class="main-header-text">ChurnCatcher</span>
+</div>
+<div class="sub-header">
+    Predict Customer Churn with Machine Learning
+</div>
 
 /* ===== FULL PAGE GRADIENT BACKGROUND ===== */
 .stApp {
