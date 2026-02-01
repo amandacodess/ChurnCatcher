@@ -8,48 +8,304 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, roc_curve
-import io
 from datetime import datetime
+import time
 
-# Page config
+# ==================== PAGE CONFIG ====================
 st.set_page_config(
-    page_title="ChurnCatcher 🎯",
+    page_title="ChurnCatcher Analytics",
     page_icon="🎯",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# Custom CSS
+# ==================== PREMIUM CSS STYLING ====================
+# This creates the Netflix-style scrolling experience with premium visual polish
 st.markdown("""
-    <style>
-    .main-header {
-        font-size: 3rem;
-        font-weight: bold;
+<style>
+    /* ========== GLOBAL THEME ========== */
+    /* Dark, rich base with gradient overlay */
+    .stApp {
+        background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    
+    /* Remove default padding for full-width sections */
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+        max-width: 95%;
+    }
+    
+    /* ========== SECTION CONTAINERS ========== */
+    /* Each section gets its own visual identity */
+    .section-container {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 3rem 2rem;
+        margin: 2rem 0;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        animation: fadeInUp 0.6s ease-out;
+    }
+    
+    /* Alternate section styling for visual rhythm */
+    .section-container-alt {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 3rem 2rem;
+        margin: 2rem 0;
+        border: 1px solid rgba(168, 85, 247, 0.2);
+        box-shadow: 0 8px 32px rgba(168, 85, 247, 0.2);
+        animation: fadeInUp 0.6s ease-out;
+    }
+    
+    /* ========== ANIMATIONS ========== */
+    /* Subtle fade-in on scroll simulation */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes slideInLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    @keyframes pulse {
+        0%, 100% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.05);
+        }
+    }
+    
+    /* ========== HERO SECTION ========== */
+    .hero-container {
         text-align: center;
-        color: #FF4B4B;
+        padding: 4rem 2rem;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(168, 85, 247, 0.2) 100%);
+        border-radius: 30px;
+        margin-bottom: 3rem;
+        border: 2px solid rgba(168, 85, 247, 0.3);
+        animation: fadeInUp 0.8s ease-out;
+    }
+    
+    .hero-title {
+        font-size: 4rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
         margin-bottom: 1rem;
+        animation: slideInLeft 0.8s ease-out;
     }
-    .sub-header {
-        text-align: center;
-        color: #666;
+    
+    .hero-subtitle {
+        font-size: 1.5rem;
+        color: rgba(255, 255, 255, 0.8);
+        font-weight: 300;
         margin-bottom: 2rem;
+        animation: fadeInUp 1s ease-out;
     }
+    
+    /* ========== SECTION HEADERS ========== */
+    /* Storytelling-style headers with dynamic styling */
+    .section-header {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 0.5rem;
+        text-align: left;
+        animation: slideInLeft 0.6s ease-out;
+    }
+    
+    .section-subheader {
+        font-size: 1.2rem;
+        color: rgba(255, 255, 255, 0.6);
+        font-weight: 400;
+        margin-bottom: 2rem;
+        font-style: italic;
+        animation: fadeInUp 0.8s ease-out;
+    }
+    
+    /* ========== METRIC CARDS (Netflix-style rows) ========== */
     .metric-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 1.5rem;
-        border-radius: 10px;
-        color: white;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%);
+        border-radius: 16px;
+        padding: 2rem;
         text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+        cursor: pointer;
+        animation: fadeInUp 0.6s ease-out;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
     }
-    </style>
+    
+    .metric-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 32px rgba(168, 85, 247, 0.4);
+        border-color: rgba(168, 85, 247, 0.5);
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(168, 85, 247, 0.25) 100%);
+    }
+    
+    .metric-value {
+        font-size: 3rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 0.5rem;
+        animation: pulse 2s ease-in-out infinite;
+    }
+    
+    .metric-label {
+        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.7);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    /* ========== INSIGHT CARDS ========== */
+    .insight-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-left: 4px solid #667eea;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+        animation: fadeInUp 0.6s ease-out;
+        transition: all 0.3s ease;
+    }
+    
+    .insight-card:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-left-color: #764ba2;
+        transform: translateX(8px);
+    }
+    
+    .insight-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #667eea;
+        margin-bottom: 0.5rem;
+    }
+    
+    .insight-text {
+        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.8);
+        line-height: 1.6;
+    }
+    
+    /* ========== NAVIGATION PILLS ========== */
+    .nav-container {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin: 2rem 0;
+        flex-wrap: wrap;
+    }
+    
+    .nav-pill {
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 25px;
+        padding: 0.8rem 2rem;
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .nav-pill:hover {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: transparent;
+        transform: scale(1.05);
+        box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+    }
+    
+    /* ========== STREAMLIT COMPONENT OVERRIDES ========== */
+    /* Style native Streamlit elements to match theme */
+    div[data-testid="stMetricValue"] {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #667eea;
+    }
+    
+    div[data-testid="stMetricLabel"] {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    
+    /* Style buttons */
+    .stButton > button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 0.8rem 2rem;
+        font-weight: 600;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.5);
+    }
+    
+    /* Style dataframes */
+    .stDataFrame {
+        border-radius: 12px;
+        overflow: hidden;
+        animation: fadeInUp 0.6s ease-out;
+    }
+    
+    /* Hide Streamlit branding */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    
+    /* ========== RESPONSIVE DESIGN ========== */
+    @media (max-width: 768px) {
+        .hero-title {
+            font-size: 2.5rem;
+        }
+        
+        .section-header {
+            font-size: 1.8rem;
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+        }
+    }
+</style>
 """, unsafe_allow_html=True)
 
-# Helper Functions
+# ==================== HELPER FUNCTIONS ====================
 @st.cache_data
 def generate_sample_data(n_samples=5000):
     """Generate synthetic customer churn data"""
     np.random.seed(42)
-    
     data = {
         'customer_id': range(1, n_samples + 1),
         'age': np.random.randint(18, 70, n_samples),
@@ -64,12 +320,9 @@ def generate_sample_data(n_samples=5000):
         'num_services': np.random.randint(0, 6, n_samples),
         'customer_service_calls': np.random.randint(0, 10, n_samples)
     }
-    
     df = pd.DataFrame(data)
-    
     churn_prob = (
-        0.1 +
-        0.3 * (df['contract_type'] == 'Month-to-month').astype(int) +
+        0.1 + 0.3 * (df['contract_type'] == 'Month-to-month').astype(int) +
         0.2 * (df['tenure_months'] < 12).astype(int) +
         0.15 * (df['customer_service_calls'] > 4).astype(int) +
         0.1 * (df['monthly_charges'] > 100).astype(int) -
@@ -77,22 +330,17 @@ def generate_sample_data(n_samples=5000):
     )
     churn_prob = np.clip(churn_prob, 0, 1)
     df['churn'] = (np.random.random(n_samples) < churn_prob).astype(int)
-    
     return df
 
 def preprocess_data(df):
     """Preprocess data for modeling"""
     df_processed = df.drop('customer_id', axis=1, errors='ignore')
-    
-    # Encode categorical variables
     label_encoders = {}
     categorical_cols = df_processed.select_dtypes(include=['object']).columns
-    
     for col in categorical_cols:
         le = LabelEncoder()
         df_processed[col] = le.fit_transform(df_processed[col])
         label_encoders[col] = le
-    
     if 'churn' in df_processed.columns:
         X = df_processed.drop('churn', axis=1)
         y = df_processed['churn']
@@ -104,343 +352,283 @@ def preprocess_data(df):
 def train_models(X, y):
     """Train multiple models"""
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
-    
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
-    
     models = {
         'Logistic Regression': LogisticRegression(random_state=42, max_iter=1000),
         'Random Forest': RandomForestClassifier(n_estimators=100, random_state=42),
         'Gradient Boosting': GradientBoostingClassifier(n_estimators=100, random_state=42)
     }
-    
     results = {}
-    
     for name, model in models.items():
         model.fit(X_train_scaled, y_train)
         y_pred = model.predict(X_test_scaled)
         y_pred_proba = model.predict_proba(X_test_scaled)[:, 1]
-        
         accuracy = model.score(X_test_scaled, y_test)
         auc_score = roc_auc_score(y_test, y_pred_proba)
-        
         results[name] = {
-            'model': model,
-            'accuracy': accuracy,
-            'auc': auc_score,
-            'predictions': y_pred,
-            'probabilities': y_pred_proba
+            'model': model, 'accuracy': accuracy, 'auc': auc_score,
+            'predictions': y_pred, 'probabilities': y_pred_proba
         }
-    
     return results, X_test, y_test, scaler
 
-# Main App
+# ==================== REUSABLE UI COMPONENTS ====================
+def create_metric_card(value, label):
+    """Create a Netflix-style metric card"""
+    return f"""
+    <div class="metric-card">
+        <div class="metric-value">{value}</div>
+        <div class="metric-label">{label}</div>
+    </div>
+    """
+
+def create_section_header(title, subtitle):
+    """Create storytelling-style section header"""
+    return f"""
+    <div class="section-header">{title}</div>
+    <div class="section-subheader">{subtitle}</div>
+    """
+
+def create_insight_card(title, text):
+    """Create an insight card with hover effect"""
+    return f"""
+    <div class="insight-card">
+        <div class="insight-title">{title}</div>
+        <div class="insight-text">{text}</div>
+    </div>
+    """
+
+# ==================== MAIN APP ====================
 def main():
-    # Header
-    st.markdown('<div class="main-header">🎯 ChurnCatcher</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Predict Customer Churn with Machine Learning</div>', unsafe_allow_html=True)
+    # ========== HERO SECTION ==========
+    st.markdown("""
+    <div class="hero-container">
+        <div class="hero-title">🎯 ChurnCatcher</div>
+        <div class="hero-subtitle">Predict. Prevent. Prosper.</div>
+    </div>
+    """, unsafe_allow_html=True)
     
-    # Sidebar
-    st.sidebar.title("⚙️ Settings")
+    # Load data
+    df = generate_sample_data(5000)
     
-    page = st.sidebar.radio("Navigation", [
-        "📊 Dashboard",
-        "🤖 Model Training",
-        "🔮 Predictions",
-        "📈 Analytics"
-    ])
+    # ========== SECTION 1: THE BIG PICTURE ==========
+    st.markdown('<div class="section-container">', unsafe_allow_html=True)
+    st.markdown(create_section_header(
+        "Let's talk about the customers we're losing.",
+        "Understanding churn is the first step to prevention."
+    ), unsafe_allow_html=True)
     
-    # Load or generate data
-    data_source = st.sidebar.radio("Data Source", ["Generate Sample Data", "Upload CSV"])
+    # Metric cards in horizontal layout
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.markdown(create_metric_card(f"{len(df):,}", "Total Customers"), unsafe_allow_html=True)
+    with col2:
+        churn_rate = df['churn'].mean() * 100
+        st.markdown(create_metric_card(f"{churn_rate:.1f}%", "Churn Rate"), unsafe_allow_html=True)
+    with col3:
+        st.markdown(create_metric_card(f"{(df['churn'] == 0).sum():,}", "Retained"), unsafe_allow_html=True)
+    with col4:
+        st.markdown(create_metric_card(f"{(df['churn'] == 1).sum():,}", "At Risk"), unsafe_allow_html=True)
     
-    if data_source == "Generate Sample Data":
-        n_samples = st.sidebar.slider("Number of Samples", 1000, 10000, 5000, 500)
-        df = generate_sample_data(n_samples)
-    else:
-        uploaded_file = st.sidebar.file_uploader("Upload CSV", type=['csv'])
-        if uploaded_file:
-            df = pd.read_csv(uploaded_file)
-        else:
-            st.warning("Please upload a CSV file or select 'Generate Sample Data'")
-            return
+    st.markdown('</div>', unsafe_allow_html=True)
     
-    # Dashboard Page
-    if page == "📊 Dashboard":
-        st.header("📊 Customer Churn Overview")
-        
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.metric("Total Customers", f"{len(df):,}")
-        with col2:
-            churn_rate = df['churn'].mean() * 100
-            st.metric("Churn Rate", f"{churn_rate:.1f}%")
-        with col3:
-            st.metric("Retained", f"{(df['churn'] == 0).sum():,}")
-        with col4:
-            st.metric("Churned", f"{(df['churn'] == 1).sum():,}")
-        
-        st.markdown("---")
-        
-        # Visualizations
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Churn Distribution
-            churn_counts = df['churn'].value_counts()
-            fig = go.Figure(data=[go.Pie(
-                labels=['Retained', 'Churned'],
-                values=churn_counts.values,
-                hole=0.4,
-                marker_colors=['#2ecc71', '#e74c3c']
-            )])
-            fig.update_layout(title="Churn Distribution", height=400)
-            st.plotly_chart(fig, use_container_width=True)
-        
-        with col2:
-            # Churn by Contract Type
-            contract_churn = pd.crosstab(df['contract_type'], df['churn'], normalize='index') * 100
-            fig = px.bar(
-                contract_churn,
-                barmode='group',
-                title="Churn Rate by Contract Type",
-                labels={'value': 'Percentage (%)', 'contract_type': 'Contract Type'},
-                color_discrete_map={0: '#2ecc71', 1: '#e74c3c'}
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Monthly Charges Distribution
-            fig = px.box(df, x='churn', y='monthly_charges', 
-                        title="Monthly Charges by Churn Status",
-                        labels={'churn': 'Churn (0=No, 1=Yes)', 'monthly_charges': 'Monthly Charges ($)'},
-                        color='churn',
-                        color_discrete_map={0: '#2ecc71', 1: '#e74c3c'})
-            st.plotly_chart(fig, use_container_width=True)
-        
-        with col2:
-            # Tenure Distribution
-            fig = px.histogram(df, x='tenure_months', color='churn',
-                             title="Tenure Distribution by Churn",
-                             labels={'tenure_months': 'Tenure (months)', 'churn': 'Churned'},
-                             color_discrete_map={0: '#2ecc71', 1: '#e74c3c'},
-                             barmode='overlay')
-            fig.update_traces(opacity=0.7)
-            st.plotly_chart(fig, use_container_width=True)
-        
-        # Data Preview
-        st.subheader("📋 Data Preview")
-        st.dataframe(df.head(100), use_container_width=True)
+    # ========== SECTION 2: VISUAL INSIGHTS ==========
+    st.markdown('<div class="section-container-alt">', unsafe_allow_html=True)
+    st.markdown(create_section_header(
+        "Who's leaving, and why does it matter?",
+        "Let the data tell the story."
+    ), unsafe_allow_html=True)
     
-    # Model Training Page
-    elif page == "🤖 Model Training":
-        st.header("🤖 Model Training & Evaluation")
+    col1, col2 = st.columns(2)
+    with col1:
+        churn_counts = df['churn'].value_counts()
+        fig = go.Figure(data=[go.Pie(
+            labels=['Retained', 'Churned'],
+            values=churn_counts.values,
+            hole=0.5,
+            marker_colors=['#667eea', '#f093fb'],
+            textfont=dict(size=16, color='white')
+        )])
+        fig.update_layout(
+            title=dict(text="Customer Distribution", font=dict(size=20, color='white')),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='white'),
+            height=400
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with col2:
+        contract_churn = pd.crosstab(df['contract_type'], df['churn'], normalize='index') * 100
+        fig = px.bar(
+            contract_churn,
+            barmode='group',
+            title="Churn by Contract Type",
+            labels={'value': 'Percentage (%)', 'contract_type': 'Contract'},
+            color_discrete_sequence=['#667eea', '#f093fb']
+        )
+        fig.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='white'),
+            title=dict(font=dict(size=20)),
+            height=400
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # ========== SECTION 3: KEY INSIGHTS ==========
+    st.markdown('<div class="section-container">', unsafe_allow_html=True)
+    st.markdown(create_section_header(
+        "What the numbers are telling us.",
+        "Actionable insights from the data."
+    ), unsafe_allow_html=True)
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown(create_insight_card(
+            "💡 Month-to-Month Contracts",
+            f"Customers on month-to-month plans are {((df[df['contract_type']=='Month-to-month']['churn'].mean() / df['churn'].mean() - 1) * 100):.0f}% more likely to churn."
+        ), unsafe_allow_html=True)
         
-        if st.button("🚀 Train Models", type="primary"):
-            with st.spinner("Training models... This may take a moment..."):
+        st.markdown(create_insight_card(
+            "📞 Service Calls Matter",
+            f"Customers with 5+ service calls have a {(df[df['customer_service_calls']>4]['churn'].mean()*100):.0f}% churn rate."
+        ), unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown(create_insight_card(
+            "⏰ First Year is Critical",
+            f"{(df[df['tenure_months']<12]['churn'].mean()*100):.0f}% of customers churn within their first year."
+        ), unsafe_allow_html=True)
+        
+        st.markdown(create_insight_card(
+            "💰 Price Sensitivity",
+            f"High-paying customers (>${df['monthly_charges'].quantile(0.75):.0f}/mo) show {(df[df['monthly_charges']>df['monthly_charges'].quantile(0.75)]['churn'].mean()*100):.0f}% churn rate."
+        ), unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # ========== SECTION 4: INTERACTIVE ANALYSIS ==========
+    st.markdown('<div class="section-container-alt">', unsafe_allow_html=True)
+    st.markdown(create_section_header(
+        "Dive deeper into the patterns.",
+        "Explore the relationships between customer behavior and churn."
+    ), unsafe_allow_html=True)
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        fig = px.box(
+            df, x='churn', y='monthly_charges',
+            title="Monthly Charges Impact",
+            labels={'churn': 'Customer Status', 'monthly_charges': 'Monthly Charges ($)'},
+            color='churn',
+            color_discrete_sequence=['#667eea', '#f093fb']
+        )
+        fig.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='white'),
+            title=dict(font=dict(size=20)),
+            height=400
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with col2:
+        fig = px.histogram(
+            df, x='tenure_months', color='churn',
+            title="Tenure Distribution",
+            labels={'tenure_months': 'Months with Company', 'churn': 'Status'},
+            color_discrete_sequence=['#667eea', '#f093fb'],
+            barmode='overlay',
+            opacity=0.7
+        )
+        fig.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='white'),
+            title=dict(font=dict(size=20)),
+            height=400
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # ========== SECTION 5: CALL TO ACTION ==========
+    st.markdown('<div class="section-container">', unsafe_allow_html=True)
+    st.markdown(create_section_header(
+        "Ready to predict and prevent churn?",
+        "Train ML models and start making intelligent predictions."
+    ), unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("🚀 Train AI Models", use_container_width=True):
+            with st.spinner("Training models... Creating your churn prediction engine..."):
+                progress_bar = st.progress(0)
+                for i in range(100):
+                    time.sleep(0.01)
+                    progress_bar.progress(i + 1)
+                
                 X, y, _ = preprocess_data(df)
                 results, X_test, y_test, scaler = train_models(X, y)
-                
-                # Store in session state
                 st.session_state['models'] = results
                 st.session_state['X_test'] = X_test
                 st.session_state['y_test'] = y_test
                 st.session_state['scaler'] = scaler
                 
-                st.success("✅ Models trained successfully!")
-        
-        if 'models' in st.session_state:
-            results = st.session_state['models']
-            
-            st.subheader("📊 Model Performance Comparison")
-            
-            # Performance Metrics
-            col1, col2, col3 = st.columns(3)
-            
-            for i, (name, result) in enumerate(results.items()):
-                with [col1, col2, col3][i]:
-                    st.markdown(f"### {name}")
-                    st.metric("Accuracy", f"{result['accuracy']:.2%}")
-                    st.metric("AUC-ROC", f"{result['auc']:.3f}")
-            
-            st.markdown("---")
-            
-            # ROC Curves
-            st.subheader("📈 ROC Curves")
-            fig = go.Figure()
-            
-            for name, result in results.items():
-                fpr, tpr, _ = roc_curve(st.session_state['y_test'], result['probabilities'])
-                fig.add_trace(go.Scatter(
-                    x=fpr, y=tpr,
-                    name=f"{name} (AUC={result['auc']:.3f})",
-                    mode='lines'
-                ))
-            
-            fig.add_trace(go.Scatter(
-                x=[0, 1], y=[0, 1],
-                name='Random',
-                mode='lines',
-                line=dict(dash='dash', color='gray')
-            ))
-            
-            fig.update_layout(
-                title="ROC Curves - Model Comparison",
-                xaxis_title="False Positive Rate",
-                yaxis_title="True Positive Rate",
-                height=500
-            )
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # Confusion Matrix
-            st.subheader("🔍 Confusion Matrix")
-            model_choice = st.selectbox("Select Model", list(results.keys()))
-            
-            cm = confusion_matrix(st.session_state['y_test'], results[model_choice]['predictions'])
-            
-            fig = go.Figure(data=go.Heatmap(
-                z=cm,
-                x=['Retained', 'Churned'],
-                y=['Retained', 'Churned'],
-                colorscale='Blues',
-                text=cm,
-                texttemplate='%{text}',
-                textfont={"size": 20}
-            ))
-            fig.update_layout(
-                title=f"Confusion Matrix - {model_choice}",
-                xaxis_title="Predicted",
-                yaxis_title="Actual",
-                height=400
-            )
-            st.plotly_chart(fig, use_container_width=True)
+                st.success("✨ Models trained! Scroll down to see performance.")
     
-    # Predictions Page
-    elif page == "🔮 Predictions":
-        st.header("🔮 Make Predictions")
+    if 'models' in st.session_state:
+        st.markdown("---")
+        results = st.session_state['models']
         
-        if 'models' not in st.session_state:
-            st.warning("⚠️ Please train models first in the 'Model Training' page!")
-            return
+        st.markdown(create_section_header(
+            "Your AI models are ready.",
+            "Here's how they performed."
+        ), unsafe_allow_html=True)
         
-        st.subheader("Upload Customer Data for Prediction")
-        
-        pred_file = st.file_uploader("Upload CSV with customer data", type=['csv'], key='prediction')
-        
-        if pred_file:
-            pred_df = pd.read_csv(pred_file)
-            st.write("📋 Uploaded Data Preview:")
-            st.dataframe(pred_df.head(), use_container_width=True)
-            
-            model_choice = st.selectbox("Select Model for Prediction", list(st.session_state['models'].keys()))
-            
-            if st.button("🎯 Predict Churn", type="primary"):
-                with st.spinner("Making predictions..."):
-                    X_pred, _, _ = preprocess_data(pred_df)
-                    X_pred_scaled = st.session_state['scaler'].transform(X_pred)
-                    
-                    model = st.session_state['models'][model_choice]['model']
-                    predictions = model.predict(X_pred_scaled)
-                    probabilities = model.predict_proba(X_pred_scaled)[:, 1]
-                    
-                    pred_df['Churn_Prediction'] = predictions
-                    pred_df['Churn_Probability'] = probabilities
-                    pred_df['Risk_Level'] = pd.cut(probabilities, 
-                                                    bins=[0, 0.3, 0.7, 1.0],
-                                                    labels=['Low', 'Medium', 'High'])
-                    
-                    st.success("✅ Predictions completed!")
-                    
-                    # Results
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        st.metric("High Risk Customers", (pred_df['Risk_Level'] == 'High').sum())
-                    with col2:
-                        st.metric("Medium Risk Customers", (pred_df['Risk_Level'] == 'Medium').sum())
-                    with col3:
-                        st.metric("Low Risk Customers", (pred_df['Risk_Level'] == 'Low').sum())
-                    
-                    st.markdown("---")
-                    st.subheader("📊 Prediction Results")
-                    st.dataframe(pred_df, use_container_width=True)
-                    
-                    # Download button
-                    csv = pred_df.to_csv(index=False)
-                    st.download_button(
-                        label="📥 Download Predictions as CSV",
-                        data=csv,
-                        file_name=f"churn_predictions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                        mime="text/csv"
-                    )
-        else:
-            st.info("💡 Tip: Upload a CSV file with customer data (without the 'churn' column) to make predictions!")
-    
-    # Analytics Page
-    elif page == "📈 Analytics":
-        st.header("📈 Advanced Analytics")
-        
-        if 'models' not in st.session_state:
-            st.warning("⚠️ Please train models first in the 'Model Training' page!")
-            return
-        
-        # Feature Importance
-        st.subheader("🎯 Feature Importance Analysis")
-        
-        # Get feature importance from Random Forest
-        if 'Random Forest' in st.session_state['models']:
-            model = st.session_state['models']['Random Forest']['model']
-            X, y, _ = preprocess_data(df)
-            
-            importances = model.feature_importances_
-            feature_names = X.columns
-            
-            importance_df = pd.DataFrame({
-                'Feature': feature_names,
-                'Importance': importances
-            }).sort_values('Importance', ascending=False)
-            
-            fig = px.bar(importance_df, x='Importance', y='Feature', 
-                        orientation='h',
-                        title="Feature Importance (Random Forest)",
-                        color='Importance',
-                        color_continuous_scale='Viridis')
-            fig.update_layout(height=500)
-            st.plotly_chart(fig, use_container_width=True)
+        col1, col2, col3 = st.columns(3)
+        for i, (name, result) in enumerate(results.items()):
+            with [col1, col2, col3][i]:
+                st.markdown(create_metric_card(
+                    f"{result['accuracy']:.1%}",
+                    f"{name}<br>Accuracy"
+                ), unsafe_allow_html=True)
         
         st.markdown("---")
         
-        # Customer Segmentation
-        st.subheader("👥 Customer Segmentation by Risk")
-        
-        X, y, _ = preprocess_data(df)
-        X_scaled = st.session_state['scaler'].transform(X)
-        model = st.session_state['models']['Random Forest']['model']
-        
-        df['Churn_Probability'] = model.predict_proba(X_scaled)[:, 1]
-        df['Risk_Level'] = pd.cut(df['Churn_Probability'], 
-                                   bins=[0, 0.3, 0.7, 1.0],
-                                   labels=['Low', 'Medium', 'High'])
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            risk_counts = df['Risk_Level'].value_counts()
-            fig = px.pie(values=risk_counts.values, names=risk_counts.index,
-                        title="Customer Distribution by Risk Level",
-                        color=risk_counts.index,
-                        color_discrete_map={'Low': '#2ecc71', 'Medium': '#f39c12', 'High': '#e74c3c'})
-            st.plotly_chart(fig, use_container_width=True)
-        
-        with col2:
-            fig = px.scatter(df, x='tenure_months', y='monthly_charges',
-                           color='Risk_Level',
-                           title="Risk Level by Tenure and Monthly Charges",
-                           color_discrete_map={'Low': '#2ecc71', 'Medium': '#f39c12', 'High': '#e74c3c'},
-                           opacity=0.6)
-            st.plotly_chart(fig, use_container_width=True)
+        # ROC Curves
+        fig = go.Figure()
+        for name, result in results.items():
+            fpr, tpr, _ = roc_curve(st.session_state['y_test'], result['probabilities'])
+            fig.add_trace(go.Scatter(
+                x=fpr, y=tpr,
+                name=f"{name} (AUC={result['auc']:.3f})",
+                mode='lines',
+                line=dict(width=3)
+            ))
+        fig.add_trace(go.Scatter(
+            x=[0, 1], y=[0, 1],
+            name='Random Guess',
+            mode='lines',
+            line=dict(dash='dash', color='gray', width=2)
+        ))
+        fig.update_layout(
+            title=dict(text="Model Performance Comparison", font=dict(size=24, color='white')),
+            xaxis_title="False Positive Rate",
+            yaxis_title="True Positive Rate",
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='white', size=14),
+            height=500,
+            hovermode='x unified'
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
