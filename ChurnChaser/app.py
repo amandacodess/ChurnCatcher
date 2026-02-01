@@ -8,43 +8,178 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, roc_curve
-import io
 from datetime import datetime
 
-# Page config
+# ==================== CONFIG ====================
 st.set_page_config(
-    page_title="ChurnCatcher 🎯",
-    page_icon="🎯",
+    page_title="ChurnCatcher",
+    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
-st.markdown("""
+# ==================== DESIGN SYSTEM ====================
+COLORS = {
+    'primary': '#2563eb',
+    'success': '#10b981',
+    'warning': '#f59e0b',
+    'danger': '#ef4444',
+    'bg_light': '#f8fafc',
+    'bg_card': '#ffffff',
+    'text_primary': '#0f172a',
+    'text_secondary': '#64748b',
+    'border': '#e2e8f0'
+}
+
+# ==================== CUSTOM STYLING ====================
+st.markdown(f"""
     <style>
-    .main-header {
-        font-size: 3rem;
-        font-weight: bold;
-        text-align: center;
-        color: #FF4B4B;
-        margin-bottom: 1rem;
-    }
-    .sub-header {
-        text-align: center;
-        color: #666;
-        margin-bottom: 2rem;
-    }
-    .metric-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    /* Global Resets */
+    .main {{
+        background-color: {COLORS['bg_light']};
+    }}
+    
+    /* Remove default Streamlit padding */
+    .block-container {{
+        padding-top: 3rem;
+        padding-bottom: 3rem;
+        max-width: 1400px;
+    }}
+    
+    /* Typography System */
+    .hero-title {{
+        font-size: 2rem;
+        font-weight: 600;
+        color: {COLORS['text_primary']};
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.02em;
+    }}
+    
+    .hero-subtitle {{
+        font-size: 1.125rem;
+        font-weight: 400;
+        color: {COLORS['text_secondary']};
+        margin-bottom: 2.5rem;
+    }}
+    
+    .section-title {{
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: {COLORS['text_primary']};
+        margin-top: 3rem;
+        margin-bottom: 1.5rem;
+        letter-spacing: -0.01em;
+    }}
+    
+    /* Metric Cards - Clean & Minimal */
+    .metric-card {{
+        background: {COLORS['bg_card']};
+        border: 1px solid {COLORS['border']};
+        border-radius: 12px;
         padding: 1.5rem;
-        border-radius: 10px;
+        transition: all 0.2s ease;
+    }}
+    
+    .metric-card:hover {{
+        border-color: {COLORS['primary']};
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+        transform: translateY(-2px);
+    }}
+    
+    .metric-label {{
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: {COLORS['text_secondary']};
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+    }}
+    
+    .metric-value {{
+        font-size: 2rem;
+        font-weight: 600;
+        color: {COLORS['text_primary']};
+        line-height: 1;
+    }}
+    
+    .metric-change {{
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-top: 0.5rem;
+    }}
+    
+    .metric-change.positive {{
+        color: {COLORS['success']};
+    }}
+    
+    .metric-change.negative {{
+        color: {COLORS['danger']};
+    }}
+    
+    /* Chart Container */
+    .chart-container {{
+        background: {COLORS['bg_card']};
+        border: 1px solid {COLORS['border']};
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }}
+    
+    /* Buttons */
+    .stButton > button {{
+        background-color: {COLORS['primary']};
         color: white;
-        text-align: center;
-    }
+        border: none;
+        border-radius: 8px;
+        padding: 0.625rem 1.25rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }}
+    
+    .stButton > button:hover {{
+        background-color: #1d4ed8;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        transform: translateY(-1px);
+    }}
+    
+    /* Sidebar Styling */
+    .css-1d391kg, [data-testid="stSidebar"] {{
+        background-color: {COLORS['bg_card']};
+        border-right: 1px solid {COLORS['border']};
+    }}
+    
+    /* Remove Streamlit Branding */
+    #MainMenu {{visibility: hidden;}}
+    footer {{visibility: hidden;}}
+    
+    /* Divider */
+    hr {{
+        margin: 2.5rem 0;
+        border: none;
+        border-top: 1px solid {COLORS['border']};
+    }}
+    
+    /* Info/Warning Boxes */
+    .stAlert {{
+        border-radius: 8px;
+        border-left: 4px solid {COLORS['primary']};
+    }}
+    
+    /* Radio Buttons */
+    .stRadio > label {{
+        font-weight: 500;
+        color: {COLORS['text_primary']};
+    }}
+    
+    /* Dataframe Styling */
+    .dataframe {{
+        border: 1px solid {COLORS['border']} !important;
+        border-radius: 8px;
+    }}
     </style>
 """, unsafe_allow_html=True)
 
-# Helper Functions
+# ==================== HELPER FUNCTIONS ====================
 @st.cache_data
 def generate_sample_data(n_samples=5000):
     """Generate synthetic customer churn data"""
@@ -84,7 +219,6 @@ def preprocess_data(df):
     """Preprocess data for modeling"""
     df_processed = df.drop('customer_id', axis=1, errors='ignore')
     
-    # Encode categorical variables
     label_encoders = {}
     categorical_cols = df_processed.select_dtypes(include=['object']).columns
     
@@ -135,210 +269,292 @@ def train_models(X, y):
     
     return results, X_test, y_test, scaler
 
-# Main App
+def create_metric_card(label, value, change=None, change_type="neutral"):
+    """Create a clean metric card with optional change indicator"""
+    change_class = "positive" if change_type == "positive" else "negative" if change_type == "negative" else ""
+    change_html = f'<div class="metric-change {change_class}">{change}</div>' if change else ''
+    
+    return f"""
+    <div class="metric-card">
+        <div class="metric-label">{label}</div>
+        <div class="metric-value">{value}</div>
+        {change_html}
+    </div>
+    """
+
+# ==================== PLOTLY THEME ====================
+def get_plotly_layout(title):
+    """Consistent Plotly layout configuration"""
+    return {
+        'title': {
+            'text': title,
+            'font': {'size': 16, 'weight': 600, 'color': COLORS['text_primary']},
+            'x': 0,
+            'xanchor': 'left'
+        },
+        'plot_bgcolor': 'white',
+        'paper_bgcolor': 'white',
+        'font': {'family': 'system-ui, -apple-system, sans-serif', 'color': COLORS['text_primary']},
+        'margin': {'l': 20, 'r': 20, 't': 50, 'b': 20},
+        'hoverlabel': {'bgcolor': 'white', 'font_size': 12},
+        'xaxis': {'showgrid': False, 'showline': True, 'linecolor': COLORS['border']},
+        'yaxis': {'showgrid': True, 'gridcolor': COLORS['border'], 'showline': False}
+    }
+
+# ==================== MAIN APP ====================
 def main():
-    # Header
-    st.markdown('<div class="main-header">🎯 ChurnCatcher</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Predict Customer Churn with Machine Learning</div>', unsafe_allow_html=True)
+    # Hero Section
+    st.markdown('<div class="hero-title">ChurnCatcher</div>', unsafe_allow_html=True)
+    st.markdown('<div class="hero-subtitle">ML-powered customer retention intelligence</div>', unsafe_allow_html=True)
     
     # Sidebar
-    st.sidebar.title("⚙️ Settings")
-    
-    page = st.sidebar.radio("Navigation", [
-        "📊 Dashboard",
-        "🤖 Model Training",
-        "🔮 Predictions",
-        "📈 Analytics"
-    ])
-    
-    # Load or generate data
-    data_source = st.sidebar.radio("Data Source", ["Generate Sample Data", "Upload CSV"])
-    
-    if data_source == "Generate Sample Data":
-        n_samples = st.sidebar.slider("Number of Samples", 1000, 10000, 5000, 500)
-        df = generate_sample_data(n_samples)
-    else:
-        uploaded_file = st.sidebar.file_uploader("Upload CSV", type=['csv'])
-        if uploaded_file:
-            df = pd.read_csv(uploaded_file)
-        else:
-            st.warning("Please upload a CSV file or select 'Generate Sample Data'")
-            return
-    
-    # Dashboard Page
-    if page == "📊 Dashboard":
-        st.header("📊 Customer Churn Overview")
-        
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.metric("Total Customers", f"{len(df):,}")
-        with col2:
-            churn_rate = df['churn'].mean() * 100
-            st.metric("Churn Rate", f"{churn_rate:.1f}%")
-        with col3:
-            st.metric("Retained", f"{(df['churn'] == 0).sum():,}")
-        with col4:
-            st.metric("Churned", f"{(df['churn'] == 1).sum():,}")
+    with st.sidebar:
+        st.markdown("### Navigation")
+        page = st.radio("", [
+            "Overview",
+            "Model Training",
+            "Predictions",
+            "Analytics"
+        ], label_visibility="collapsed")
         
         st.markdown("---")
+        st.markdown("### Data Source")
+        data_source = st.radio("", ["Generate Sample Data", "Upload CSV"], label_visibility="collapsed")
         
-        # Visualizations
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Churn Distribution
-            churn_counts = df['churn'].value_counts()
-            fig = go.Figure(data=[go.Pie(
-                labels=['Retained', 'Churned'],
-                values=churn_counts.values,
-                hole=0.4,
-                marker_colors=['#2ecc71', '#e74c3c']
-            )])
-            fig.update_layout(title="Churn Distribution", height=400)
-            st.plotly_chart(fig, use_container_width=True)
-        
-        with col2:
-            # Churn by Contract Type
-            contract_churn = pd.crosstab(df['contract_type'], df['churn'], normalize='index') * 100
-            fig = px.bar(
-                contract_churn,
-                barmode='group',
-                title="Churn Rate by Contract Type",
-                labels={'value': 'Percentage (%)', 'contract_type': 'Contract Type'},
-                color_discrete_map={0: '#2ecc71', 1: '#e74c3c'}
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Monthly Charges Distribution
-            fig = px.box(df, x='churn', y='monthly_charges', 
-                        title="Monthly Charges by Churn Status",
-                        labels={'churn': 'Churn (0=No, 1=Yes)', 'monthly_charges': 'Monthly Charges ($)'},
-                        color='churn',
-                        color_discrete_map={0: '#2ecc71', 1: '#e74c3c'})
-            st.plotly_chart(fig, use_container_width=True)
-        
-        with col2:
-            # Tenure Distribution
-            fig = px.histogram(df, x='tenure_months', color='churn',
-                             title="Tenure Distribution by Churn",
-                             labels={'tenure_months': 'Tenure (months)', 'churn': 'Churned'},
-                             color_discrete_map={0: '#2ecc71', 1: '#e74c3c'},
-                             barmode='overlay')
-            fig.update_traces(opacity=0.7)
-            st.plotly_chart(fig, use_container_width=True)
-        
-        # Data Preview
-        st.subheader("📋 Data Preview")
-        st.dataframe(df.head(100), use_container_width=True)
+        if data_source == "Generate Sample Data":
+            n_samples = st.slider("Sample Size", 1000, 10000, 5000, 500)
+            df = generate_sample_data(n_samples)
+        else:
+            uploaded_file = st.file_uploader("Upload CSV", type=['csv'])
+            if uploaded_file:
+                df = pd.read_csv(uploaded_file)
+            else:
+                st.info("Upload a CSV file to continue")
+                return
     
-    # Model Training Page
-    elif page == "🤖 Model Training":
-        st.header("🤖 Model Training & Evaluation")
+    # ==================== OVERVIEW PAGE ====================
+    if page == "Overview":
+        # Key Metrics
+        col1, col2, col3, col4 = st.columns(4)
         
-        if st.button("🚀 Train Models", type="primary"):
-            with st.spinner("Training models... This may take a moment..."):
+        total_customers = len(df)
+        churn_rate = df['churn'].mean() * 100
+        retained = (df['churn'] == 0).sum()
+        churned = (df['churn'] == 1).sum()
+        
+        with col1:
+            st.markdown(create_metric_card("Total Customers", f"{total_customers:,}"), unsafe_allow_html=True)
+        with col2:
+            st.markdown(create_metric_card("Churn Rate", f"{churn_rate:.1f}%", 
+                                          change_type="negative" if churn_rate > 20 else "positive"), 
+                       unsafe_allow_html=True)
+        with col3:
+            st.markdown(create_metric_card("Retained", f"{retained:,}"), unsafe_allow_html=True)
+        with col4:
+            st.markdown(create_metric_card("At Risk", f"{churned:,}"), unsafe_allow_html=True)
+        
+        st.markdown('<div class="section-title">Primary Insights</div>', unsafe_allow_html=True)
+        
+        # Primary Chart - Churn by Contract Type (most important insight)
+        contract_churn = pd.crosstab(df['contract_type'], df['churn'], normalize='index') * 100
+        fig = go.Figure()
+        
+        fig.add_trace(go.Bar(
+            name='Retained',
+            x=contract_churn.index,
+            y=contract_churn[0],
+            marker_color=COLORS['success'],
+            text=[f"{val:.1f}%" for val in contract_churn[0]],
+            textposition='inside',
+            textfont={'color': 'white', 'weight': 600}
+        ))
+        
+        fig.add_trace(go.Bar(
+            name='Churned',
+            x=contract_churn.index,
+            y=contract_churn[1],
+            marker_color=COLORS['danger'],
+            text=[f"{val:.1f}%" for val in contract_churn[1]],
+            textposition='inside',
+            textfont={'color': 'white', 'weight': 600}
+        ))
+        
+        fig.update_layout(
+            **get_plotly_layout("Retention Rate by Contract Type"),
+            barmode='stack',
+            showlegend=True,
+            legend={'orientation': 'h', 'yanchor': 'bottom', 'y': 1.02, 'xanchor': 'right', 'x': 1},
+            height=400,
+            yaxis_title="Percentage (%)"
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Supporting Charts
+        st.markdown('<div class="section-title">Supporting Analysis</div>', unsafe_allow_html=True)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Tenure Distribution
+            fig = go.Figure()
+            
+            for churn_val, color, name in [(0, COLORS['success'], 'Retained'), (1, COLORS['danger'], 'Churned')]:
+                data = df[df['churn'] == churn_val]['tenure_months']
+                fig.add_trace(go.Histogram(
+                    x=data,
+                    name=name,
+                    marker_color=color,
+                    opacity=0.7,
+                    nbinsx=30
+                ))
+            
+            fig.update_layout(
+                **get_plotly_layout("Tenure Distribution"),
+                barmode='overlay',
+                showlegend=True,
+                xaxis_title="Tenure (months)",
+                yaxis_title="Count",
+                height=350
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+        
+        with col2:
+            # Monthly Charges Box Plot
+            fig = go.Figure()
+            
+            for churn_val, color, name in [(0, COLORS['success'], 'Retained'), (1, COLORS['danger'], 'Churned')]:
+                fig.add_trace(go.Box(
+                    y=df[df['churn'] == churn_val]['monthly_charges'],
+                    name=name,
+                    marker_color=color,
+                    boxmean='sd'
+                ))
+            
+            fig.update_layout(
+                **get_plotly_layout("Monthly Charges Distribution"),
+                showlegend=False,
+                yaxis_title="Monthly Charges ($)",
+                height=350
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # Data Preview (Collapsible)
+        with st.expander("📋 View Raw Data", expanded=False):
+            st.dataframe(df.head(50), use_container_width=True, height=400)
+    
+    # ==================== MODEL TRAINING PAGE ====================
+    elif page == "Model Training":
+        st.markdown('<div class="section-title">Model Training & Evaluation</div>', unsafe_allow_html=True)
+        
+        if st.button("Train Models", type="primary"):
+            with st.spinner("Training models..."):
                 X, y, _ = preprocess_data(df)
                 results, X_test, y_test, scaler = train_models(X, y)
                 
-                # Store in session state
                 st.session_state['models'] = results
                 st.session_state['X_test'] = X_test
                 st.session_state['y_test'] = y_test
                 st.session_state['scaler'] = scaler
                 
-                st.success("✅ Models trained successfully!")
+                st.success("✓ Models trained successfully")
         
         if 'models' in st.session_state:
             results = st.session_state['models']
             
-            st.subheader("📊 Model Performance Comparison")
-            
-            # Performance Metrics
+            # Model Performance Cards
+            st.markdown("### Performance Metrics")
             col1, col2, col3 = st.columns(3)
             
             for i, (name, result) in enumerate(results.items()):
                 with [col1, col2, col3][i]:
-                    st.markdown(f"### {name}")
+                    st.markdown(f"**{name}**")
                     st.metric("Accuracy", f"{result['accuracy']:.2%}")
                     st.metric("AUC-ROC", f"{result['auc']:.3f}")
             
             st.markdown("---")
             
             # ROC Curves
-            st.subheader("📈 ROC Curves")
+            st.markdown("### ROC Curves")
             fig = go.Figure()
+            
+            colors_map = {
+                'Logistic Regression': COLORS['primary'],
+                'Random Forest': COLORS['success'],
+                'Gradient Boosting': COLORS['warning']
+            }
             
             for name, result in results.items():
                 fpr, tpr, _ = roc_curve(st.session_state['y_test'], result['probabilities'])
                 fig.add_trace(go.Scatter(
                     x=fpr, y=tpr,
                     name=f"{name} (AUC={result['auc']:.3f})",
-                    mode='lines'
+                    mode='lines',
+                    line={'width': 3, 'color': colors_map.get(name, COLORS['primary'])}
                 ))
             
             fig.add_trace(go.Scatter(
                 x=[0, 1], y=[0, 1],
-                name='Random',
+                name='Random Baseline',
                 mode='lines',
-                line=dict(dash='dash', color='gray')
+                line={'dash': 'dash', 'color': COLORS['text_secondary'], 'width': 2}
             ))
             
             fig.update_layout(
-                title="ROC Curves - Model Comparison",
+                **get_plotly_layout("Model Comparison"),
                 xaxis_title="False Positive Rate",
                 yaxis_title="True Positive Rate",
-                height=500
+                height=450
             )
             st.plotly_chart(fig, use_container_width=True)
             
             # Confusion Matrix
-            st.subheader("🔍 Confusion Matrix")
+            st.markdown("### Confusion Matrix")
             model_choice = st.selectbox("Select Model", list(results.keys()))
             
             cm = confusion_matrix(st.session_state['y_test'], results[model_choice]['predictions'])
             
             fig = go.Figure(data=go.Heatmap(
                 z=cm,
-                x=['Retained', 'Churned'],
-                y=['Retained', 'Churned'],
-                colorscale='Blues',
+                x=['Predicted Retained', 'Predicted Churned'],
+                y=['Actual Retained', 'Actual Churned'],
+                colorscale=[[0, '#f8fafc'], [1, COLORS['primary']]],
                 text=cm,
-                texttemplate='%{text}',
-                textfont={"size": 20}
+                texttemplate='<b>%{text}</b>',
+                textfont={"size": 18},
+                showscale=False
             ))
+            
             fig.update_layout(
-                title=f"Confusion Matrix - {model_choice}",
-                xaxis_title="Predicted",
-                yaxis_title="Actual",
-                height=400
+                **get_plotly_layout(f"{model_choice} - Confusion Matrix"),
+                height=400,
+                xaxis={'side': 'bottom'},
+                yaxis={'autorange': 'reversed'}
             )
             st.plotly_chart(fig, use_container_width=True)
     
-    # Predictions Page
-    elif page == "🔮 Predictions":
-        st.header("🔮 Make Predictions")
+    # ==================== PREDICTIONS PAGE ====================
+    elif page == "Predictions":
+        st.markdown('<div class="section-title">Make Predictions</div>', unsafe_allow_html=True)
         
         if 'models' not in st.session_state:
-            st.warning("⚠️ Please train models first in the 'Model Training' page!")
+            st.warning("⚠ Please train models first")
             return
         
-        st.subheader("Upload Customer Data for Prediction")
-        
-        pred_file = st.file_uploader("Upload CSV with customer data", type=['csv'], key='prediction')
+        pred_file = st.file_uploader("Upload customer data (CSV)", type=['csv'])
         
         if pred_file:
             pred_df = pd.read_csv(pred_file)
-            st.write("📋 Uploaded Data Preview:")
-            st.dataframe(pred_df.head(), use_container_width=True)
             
-            model_choice = st.selectbox("Select Model for Prediction", list(st.session_state['models'].keys()))
+            with st.expander("Preview uploaded data", expanded=True):
+                st.dataframe(pred_df.head(10), use_container_width=True)
             
-            if st.button("🎯 Predict Churn", type="primary"):
-                with st.spinner("Making predictions..."):
+            model_choice = st.selectbox("Select Model", list(st.session_state['models'].keys()))
+            
+            if st.button("Generate Predictions", type="primary"):
+                with st.spinner("Generating predictions..."):
                     X_pred, _, _ = preprocess_data(pred_df)
                     X_pred_scaled = st.session_state['scaler'].transform(X_pred)
                     
@@ -352,44 +568,51 @@ def main():
                                                     bins=[0, 0.3, 0.7, 1.0],
                                                     labels=['Low', 'Medium', 'High'])
                     
-                    st.success("✅ Predictions completed!")
+                    st.success("✓ Predictions complete")
                     
-                    # Results
+                    # Risk Summary
                     col1, col2, col3 = st.columns(3)
                     with col1:
-                        st.metric("High Risk Customers", (pred_df['Risk_Level'] == 'High').sum())
+                        st.markdown(create_metric_card("High Risk", 
+                                                      f"{(pred_df['Risk_Level'] == 'High').sum():,}",
+                                                      change_type="negative"), 
+                                   unsafe_allow_html=True)
                     with col2:
-                        st.metric("Medium Risk Customers", (pred_df['Risk_Level'] == 'Medium').sum())
+                        st.markdown(create_metric_card("Medium Risk", 
+                                                      f"{(pred_df['Risk_Level'] == 'Medium').sum():,}",
+                                                      change_type="neutral"), 
+                                   unsafe_allow_html=True)
                     with col3:
-                        st.metric("Low Risk Customers", (pred_df['Risk_Level'] == 'Low').sum())
+                        st.markdown(create_metric_card("Low Risk", 
+                                                      f"{(pred_df['Risk_Level'] == 'Low').sum():,}",
+                                                      change_type="positive"), 
+                                   unsafe_allow_html=True)
                     
                     st.markdown("---")
-                    st.subheader("📊 Prediction Results")
-                    st.dataframe(pred_df, use_container_width=True)
+                    st.markdown("### Prediction Results")
+                    st.dataframe(pred_df, use_container_width=True, height=400)
                     
-                    # Download button
                     csv = pred_df.to_csv(index=False)
                     st.download_button(
-                        label="📥 Download Predictions as CSV",
+                        label="Download Predictions",
                         data=csv,
-                        file_name=f"churn_predictions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        file_name=f"predictions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                         mime="text/csv"
                     )
         else:
-            st.info("💡 Tip: Upload a CSV file with customer data (without the 'churn' column) to make predictions!")
+            st.info("Upload a CSV file with customer data to generate predictions")
     
-    # Analytics Page
-    elif page == "📈 Analytics":
-        st.header("📈 Advanced Analytics")
+    # ==================== ANALYTICS PAGE ====================
+    elif page == "Analytics":
+        st.markdown('<div class="section-title">Advanced Analytics</div>', unsafe_allow_html=True)
         
         if 'models' not in st.session_state:
-            st.warning("⚠️ Please train models first in the 'Model Training' page!")
+            st.warning("⚠ Please train models first")
             return
         
         # Feature Importance
-        st.subheader("🎯 Feature Importance Analysis")
+        st.markdown("### Feature Importance")
         
-        # Get feature importance from Random Forest
         if 'Random Forest' in st.session_state['models']:
             model = st.session_state['models']['Random Forest']['model']
             X, y, _ = preprocess_data(df)
@@ -400,20 +623,29 @@ def main():
             importance_df = pd.DataFrame({
                 'Feature': feature_names,
                 'Importance': importances
-            }).sort_values('Importance', ascending=False)
+            }).sort_values('Importance', ascending=False).head(10)
             
-            fig = px.bar(importance_df, x='Importance', y='Feature', 
-                        orientation='h',
-                        title="Feature Importance (Random Forest)",
-                        color='Importance',
-                        color_continuous_scale='Viridis')
-            fig.update_layout(height=500)
+            fig = go.Figure(go.Bar(
+                x=importance_df['Importance'],
+                y=importance_df['Feature'],
+                orientation='h',
+                marker_color=COLORS['primary'],
+                text=[f"{val:.3f}" for val in importance_df['Importance']],
+                textposition='outside'
+            ))
+            
+            fig.update_layout(
+                **get_plotly_layout("Top 10 Features (Random Forest)"),
+                height=450,
+                xaxis_title="Importance Score",
+                yaxis={'categoryorder': 'total ascending'}
+            )
             st.plotly_chart(fig, use_container_width=True)
         
         st.markdown("---")
         
         # Customer Segmentation
-        st.subheader("👥 Customer Segmentation by Risk")
+        st.markdown("### Risk Segmentation")
         
         X, y, _ = preprocess_data(df)
         X_scaled = st.session_state['scaler'].transform(X)
@@ -428,18 +660,44 @@ def main():
         
         with col1:
             risk_counts = df['Risk_Level'].value_counts()
-            fig = px.pie(values=risk_counts.values, names=risk_counts.index,
-                        title="Customer Distribution by Risk Level",
-                        color=risk_counts.index,
-                        color_discrete_map={'Low': '#2ecc71', 'Medium': '#f39c12', 'High': '#e74c3c'})
+            
+            fig = go.Figure(data=[go.Pie(
+                labels=risk_counts.index,
+                values=risk_counts.values,
+                hole=0.5,
+                marker_colors=[COLORS['success'], COLORS['warning'], COLORS['danger']],
+                textinfo='label+percent',
+                textfont={'size': 14, 'weight': 600}
+            )])
+            
+            fig.update_layout(
+                **get_plotly_layout("Customer Distribution by Risk"),
+                height=400,
+                showlegend=False
+            )
             st.plotly_chart(fig, use_container_width=True)
         
         with col2:
-            fig = px.scatter(df, x='tenure_months', y='monthly_charges',
-                           color='Risk_Level',
-                           title="Risk Level by Tenure and Monthly Charges",
-                           color_discrete_map={'Low': '#2ecc71', 'Medium': '#f39c12', 'High': '#e74c3c'},
-                           opacity=0.6)
+            fig = go.Figure()
+            
+            for risk, color in [('Low', COLORS['success']), 
+                               ('Medium', COLORS['warning']), 
+                               ('High', COLORS['danger'])]:
+                risk_data = df[df['Risk_Level'] == risk]
+                fig.add_trace(go.Scatter(
+                    x=risk_data['tenure_months'],
+                    y=risk_data['monthly_charges'],
+                    mode='markers',
+                    name=risk,
+                    marker={'color': color, 'size': 6, 'opacity': 0.6}
+                ))
+            
+            fig.update_layout(
+                **get_plotly_layout("Risk by Tenure & Charges"),
+                xaxis_title="Tenure (months)",
+                yaxis_title="Monthly Charges ($)",
+                height=400
+            )
             st.plotly_chart(fig, use_container_width=True)
 
 if __name__ == "__main__":
