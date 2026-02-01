@@ -9,7 +9,6 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, roc_curve
 from datetime import datetime
-import time
 
 # ==================== PAGE CONFIG ====================
 st.set_page_config(
@@ -19,285 +18,269 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ==================== PREMIUM CSS STYLING ====================
-# This creates the Netflix-style scrolling experience with premium visual polish
+# ==================== REFINED DESIGN SYSTEM ====================
 st.markdown("""
 <style>
-    /* ========== GLOBAL THEME ========== */
-    /* Dark, rich base with gradient overlay */
+    /* ========== DESIGN TOKENS ========== */
+    :root {
+        --primary: #6366F1;        /* Single brand color - Indigo */
+        --primary-hover: #4F46E5;
+        --success: #10B981;
+        --danger: #EF4444;
+        --warning: #F59E0B;
+        
+        --bg-primary: #FFFFFF;
+        --bg-secondary: #F9FAFB;
+        --bg-tertiary: #F3F4F6;
+        
+        --text-primary: #111827;
+        --text-secondary: #6B7280;
+        --text-tertiary: #9CA3AF;
+        
+        --border: #E5E7EB;
+        --border-hover: #D1D5DB;
+        
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    }
+    
+    /* ========== GLOBAL RESET ========== */
     .stApp {
-        background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: var(--bg-secondary);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     }
     
-    /* Remove default padding for full-width sections */
     .block-container {
-        padding-top: 2rem;
-        padding-bottom: 2rem;
-        max-width: 95%;
-    }
-    
-    /* ========== SECTION CONTAINERS ========== */
-    /* Each section gets its own visual identity */
-    .section-container {
-        background: rgba(255, 255, 255, 0.03);
-        backdrop-filter: blur(10px);
-        border-radius: 20px;
         padding: 3rem 2rem;
-        margin: 2rem 0;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        animation: fadeInUp 0.6s ease-out;
+        max-width: 1400px;
     }
     
-    /* Alternate section styling for visual rhythm */
-    .section-container-alt {
-        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
-        backdrop-filter: blur(10px);
-        border-radius: 20px;
-        padding: 3rem 2rem;
-        margin: 2rem 0;
-        border: 1px solid rgba(168, 85, 247, 0.2);
-        box-shadow: 0 8px 32px rgba(168, 85, 247, 0.2);
-        animation: fadeInUp 0.6s ease-out;
-    }
-    
-    /* ========== ANIMATIONS ========== */
-    /* Subtle fade-in on scroll simulation */
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    @keyframes slideInLeft {
-        from {
-            opacity: 0;
-            transform: translateX(-30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
-    
-    @keyframes pulse {
-        0%, 100% {
-            transform: scale(1);
-        }
-        50% {
-            transform: scale(1.05);
-        }
-    }
-    
-    /* ========== HERO SECTION ========== */
-    .hero-container {
+    /* ========== TYPOGRAPHY SYSTEM ========== */
+    .hero-section {
         text-align: center;
-        padding: 4rem 2rem;
-        background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(168, 85, 247, 0.2) 100%);
-        border-radius: 30px;
+        padding: 4rem 0 3rem;
         margin-bottom: 3rem;
-        border: 2px solid rgba(168, 85, 247, 0.3);
-        animation: fadeInUp 0.8s ease-out;
     }
     
     .hero-title {
-        font-size: 4rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        margin-bottom: 1rem;
-        animation: slideInLeft 0.8s ease-out;
+        font-size: 3rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.75rem;
+        letter-spacing: -0.02em;
     }
     
     .hero-subtitle {
-        font-size: 1.5rem;
-        color: rgba(255, 255, 255, 0.8);
-        font-weight: 300;
-        margin-bottom: 2rem;
-        animation: fadeInUp 1s ease-out;
-    }
-    
-    /* ========== SECTION HEADERS ========== */
-    /* Storytelling-style headers with dynamic styling */
-    .section-header {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #ffffff;
-        margin-bottom: 0.5rem;
-        text-align: left;
-        animation: slideInLeft 0.6s ease-out;
-    }
-    
-    .section-subheader {
-        font-size: 1.2rem;
-        color: rgba(255, 255, 255, 0.6);
+        font-size: 1.25rem;
+        color: var(--text-secondary);
         font-weight: 400;
-        margin-bottom: 2rem;
-        font-style: italic;
-        animation: fadeInUp 0.8s ease-out;
+        max-width: 600px;
+        margin: 0 auto;
     }
     
-    /* ========== METRIC CARDS (Netflix-style rows) ========== */
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.01em;
+    }
+    
+    .section-subtitle {
+        font-size: 1rem;
+        color: var(--text-secondary);
+        margin-bottom: 2rem;
+    }
+    
+    /* ========== CARD SYSTEM ========== */
     .metric-card {
-        background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%);
-        border-radius: 16px;
-        padding: 2rem;
-        text-align: center;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        transition: all 0.3s ease;
-        cursor: pointer;
-        animation: fadeInUp 0.6s ease-out;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        background: var(--bg-primary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        transition: all 0.2s ease;
     }
     
     .metric-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 12px 32px rgba(168, 85, 247, 0.4);
-        border-color: rgba(168, 85, 247, 0.5);
-        background: linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(168, 85, 247, 0.25) 100%);
+        border-color: var(--primary);
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
     }
     
     .metric-value {
-        font-size: 3rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        margin-bottom: 0.5rem;
-        animation: pulse 2s ease-in-out infinite;
+        font-size: 2.25rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
     }
     
     .metric-label {
-        font-size: 1rem;
-        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.875rem;
+        color: var(--text-secondary);
         font-weight: 500;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 0.05em;
+    }
+    
+    .metric-change {
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+    }
+    
+    .metric-change.positive {
+        color: var(--success);
+    }
+    
+    .metric-change.negative {
+        color: var(--danger);
     }
     
     /* ========== INSIGHT CARDS ========== */
     .insight-card {
-        background: rgba(255, 255, 255, 0.05);
-        border-left: 4px solid #667eea;
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin: 1rem 0;
-        animation: fadeInUp 0.6s ease-out;
-        transition: all 0.3s ease;
+        background: var(--bg-primary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        transition: border-color 0.2s ease;
     }
     
     .insight-card:hover {
-        background: rgba(255, 255, 255, 0.08);
-        border-left-color: #764ba2;
-        transform: translateX(8px);
+        border-color: var(--primary);
+    }
+    
+    .insight-icon {
+        font-size: 1.5rem;
+        margin-bottom: 0.75rem;
     }
     
     .insight-title {
-        font-size: 1.2rem;
+        font-size: 1rem;
         font-weight: 600;
-        color: #667eea;
+        color: var(--text-primary);
         margin-bottom: 0.5rem;
     }
     
     .insight-text {
-        font-size: 1rem;
-        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.9375rem;
+        color: var(--text-secondary);
         line-height: 1.6;
     }
     
-    /* ========== NAVIGATION PILLS ========== */
-    .nav-container {
-        display: flex;
-        justify-content: center;
-        gap: 1rem;
+    /* ========== SECTIONS ========== */
+    .content-section {
+        background: var(--bg-primary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .divider {
+        height: 1px;
+        background: var(--border);
         margin: 2rem 0;
-        flex-wrap: wrap;
     }
     
-    .nav-pill {
-        background: rgba(255, 255, 255, 0.05);
-        border: 2px solid rgba(255, 255, 255, 0.1);
-        border-radius: 25px;
-        padding: 0.8rem 2rem;
-        color: rgba(255, 255, 255, 0.9);
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-    
-    .nav-pill:hover {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-color: transparent;
-        transform: scale(1.05);
-        box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
-    }
-    
-    /* ========== STREAMLIT COMPONENT OVERRIDES ========== */
-    /* Style native Streamlit elements to match theme */
-    div[data-testid="stMetricValue"] {
-        font-size: 2.5rem;
-        font-weight: 800;
-        color: #667eea;
-    }
-    
-    div[data-testid="stMetricLabel"] {
-        color: rgba(255, 255, 255, 0.7);
-        font-size: 0.9rem;
-        font-weight: 500;
-    }
-    
-    /* Style buttons */
+    /* ========== BUTTONS ========== */
     .stButton > button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: var(--primary);
         color: white;
         border: none;
-        border-radius: 12px;
-        padding: 0.8rem 2rem;
+        border-radius: var(--radius-md);
+        padding: 0.75rem 1.5rem;
         font-weight: 600;
         font-size: 1rem;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+        transition: all 0.2s ease;
+        box-shadow: var(--shadow-sm);
     }
     
     .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.5);
+        background: var(--primary-hover);
+        box-shadow: var(--shadow-md);
+        transform: translateY(-1px);
     }
     
-    /* Style dataframes */
+    /* ========== STREAMLIT OVERRIDES ========== */
+    div[data-testid="stMetricValue"] {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    
+    div[data-testid="stMetricLabel"] {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    div[data-testid="stMetricDelta"] {
+        font-size: 0.875rem;
+    }
+    
     .stDataFrame {
-        border-radius: 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
         overflow: hidden;
-        animation: fadeInUp 0.6s ease-out;
+    }
+    
+    /* ========== CHART CONTAINER ========== */
+    .chart-container {
+        background: var(--bg-primary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .chart-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 1rem;
+    }
+    
+    /* ========== UTILITIES ========== */
+    .text-center {
+        text-align: center;
+    }
+    
+    .mb-1 { margin-bottom: 0.5rem; }
+    .mb-2 { margin-bottom: 1rem; }
+    .mb-3 { margin-bottom: 1.5rem; }
+    .mb-4 { margin-bottom: 2rem; }
+    
+    .mt-1 { margin-top: 0.5rem; }
+    .mt-2 { margin-top: 1rem; }
+    .mt-3 { margin-top: 1.5rem; }
+    .mt-4 { margin-top: 2rem; }
+    
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 768px) {
+        .hero-title {
+            font-size: 2rem;
+        }
+        
+        .hero-subtitle {
+            font-size: 1rem;
+        }
+        
+        .metric-value {
+            font-size: 1.75rem;
+        }
     }
     
     /* Hide Streamlit branding */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    
-    /* ========== RESPONSIVE DESIGN ========== */
-    @media (max-width: 768px) {
-        .hero-title {
-            font-size: 2.5rem;
-        }
-        
-        .section-header {
-            font-size: 1.8rem;
-        }
-        
-        .metric-value {
-            font-size: 2rem;
-        }
-    }
+    header {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -373,27 +356,28 @@ def train_models(X, y):
         }
     return results, X_test, y_test, scaler
 
-# ==================== REUSABLE UI COMPONENTS ====================
-def create_metric_card(value, label):
-    """Create a Netflix-style metric card"""
+# ==================== UI COMPONENTS ====================
+def create_metric_card(value, label, change=None):
+    """Clean metric card with optional change indicator"""
+    change_html = ""
+    if change:
+        change_class = "positive" if change > 0 else "negative"
+        change_symbol = "↑" if change > 0 else "↓"
+        change_html = f'<div class="metric-change {change_class}">{change_symbol} {abs(change):.1f}%</div>'
+    
     return f"""
     <div class="metric-card">
-        <div class="metric-value">{value}</div>
         <div class="metric-label">{label}</div>
+        <div class="metric-value">{value}</div>
+        {change_html}
     </div>
     """
 
-def create_section_header(title, subtitle):
-    """Create storytelling-style section header"""
-    return f"""
-    <div class="section-header">{title}</div>
-    <div class="section-subheader">{subtitle}</div>
-    """
-
-def create_insight_card(title, text):
-    """Create an insight card with hover effect"""
+def create_insight_card(icon, title, text):
+    """Clean insight card"""
     return f"""
     <div class="insight-card">
+        <div class="insight-icon">{icon}</div>
         <div class="insight-title">{title}</div>
         <div class="insight-text">{text}</div>
     </div>
@@ -401,234 +385,230 @@ def create_insight_card(title, text):
 
 # ==================== MAIN APP ====================
 def main():
+    # Load data
+    df = generate_sample_data(5000)
+    churn_rate = df['churn'].mean() * 100
+    
     # ========== HERO SECTION ==========
     st.markdown("""
-    <div class="hero-container">
-        <div class="hero-title">🎯 ChurnCatcher</div>
-        <div class="hero-subtitle">Predict. Prevent. Prosper.</div>
+    <div class="hero-section">
+        <h1 class="hero-title">ChurnCatcher Analytics</h1>
+        <p class="hero-subtitle">Intelligent customer retention insights powered by machine learning</p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Load data
-    df = generate_sample_data(5000)
+    # ========== KEY METRICS ==========
+    st.markdown('<div class="section-title">Overview</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-subtitle">Current customer retention metrics</div>', unsafe_allow_html=True)
     
-    # ========== SECTION 1: THE BIG PICTURE ==========
-    st.markdown('<div class="section-container">', unsafe_allow_html=True)
-    st.markdown(create_section_header(
-        "Let's talk about the customers we're losing.",
-        "Understanding churn is the first step to prevention."
-    ), unsafe_allow_html=True)
-    
-    # Metric cards in horizontal layout
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.markdown(create_metric_card(f"{len(df):,}", "Total Customers"), unsafe_allow_html=True)
     with col2:
-        churn_rate = df['churn'].mean() * 100
-        st.markdown(create_metric_card(f"{churn_rate:.1f}%", "Churn Rate"), unsafe_allow_html=True)
+        st.markdown(create_metric_card(f"{churn_rate:.1f}%", "Churn Rate", change=-2.3), unsafe_allow_html=True)
     with col3:
-        st.markdown(create_metric_card(f"{(df['churn'] == 0).sum():,}", "Retained"), unsafe_allow_html=True)
+        st.markdown(create_metric_card(f"{(df['churn'] == 0).sum():,}", "Active Customers"), unsafe_allow_html=True)
     with col4:
         st.markdown(create_metric_card(f"{(df['churn'] == 1).sum():,}", "At Risk"), unsafe_allow_html=True)
     
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
     
-    # ========== SECTION 2: VISUAL INSIGHTS ==========
-    st.markdown('<div class="section-container-alt">', unsafe_allow_html=True)
-    st.markdown(create_section_header(
-        "Who's leaving, and why does it matter?",
-        "Let the data tell the story."
-    ), unsafe_allow_html=True)
+    # ========== INSIGHTS SECTION ==========
+    st.markdown('<div class="section-title">Key Insights</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-subtitle">Data-driven observations from customer behavior</div>', unsafe_allow_html=True)
     
     col1, col2 = st.columns(2)
+    
     with col1:
+        month_to_month_churn = df[df['contract_type']=='Month-to-month']['churn'].mean()
+        increase = ((month_to_month_churn / df['churn'].mean() - 1) * 100)
+        st.markdown(create_insight_card(
+            "📋",
+            "Contract Type Impact",
+            f"Month-to-month customers show {increase:.0f}% higher churn rate compared to long-term contracts."
+        ), unsafe_allow_html=True)
+        
+        high_service_calls_churn = df[df['customer_service_calls']>4]['churn'].mean() * 100
+        st.markdown(create_insight_card(
+            "📞",
+            "Service Quality Indicator",
+            f"Customers with 5+ support calls have {high_service_calls_churn:.0f}% churn probability."
+        ), unsafe_allow_html=True)
+    
+    with col2:
+        first_year_churn = df[df['tenure_months']<12]['churn'].mean() * 100
+        st.markdown(create_insight_card(
+            "⏱️",
+            "Critical Onboarding Period",
+            f"{first_year_churn:.0f}% of churns occur within the first 12 months of service."
+        ), unsafe_allow_html=True)
+        
+        high_paying_churn = df[df['monthly_charges']>df['monthly_charges'].quantile(0.75)]['churn'].mean() * 100
+        st.markdown(create_insight_card(
+            "💰",
+            "Price Sensitivity",
+            f"High-value customers (top 25%) show {high_paying_churn:.0f}% churn rate despite premium pricing."
+        ), unsafe_allow_html=True)
+    
+    st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+    
+    # ========== ANALYTICS SECTION ==========
+    st.markdown('<div class="section-title">Customer Analytics</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-subtitle">Distribution and patterns in customer data</div>', unsafe_allow_html=True)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown('<div class="chart-title">Churn Distribution</div>', unsafe_allow_html=True)
         churn_counts = df['churn'].value_counts()
         fig = go.Figure(data=[go.Pie(
-            labels=['Retained', 'Churned'],
+            labels=['Active', 'Churned'],
             values=churn_counts.values,
-            hole=0.5,
-            marker_colors=['#667eea', '#f093fb'],
-            textfont=dict(size=16, color='white')
+            hole=0.4,
+            marker_colors=['#6366F1', '#EF4444'],
+            textfont=dict(size=14)
         )])
         fig.update_layout(
-            title=dict(text="Customer Distribution", font=dict(size=20, color='white')),
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='white'),
-            height=400
+            margin=dict(l=20, r=20, t=20, b=20),
+            height=350,
+            showlegend=True,
+            legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
         )
         st.plotly_chart(fig, use_container_width=True)
     
     with col2:
+        st.markdown('<div class="chart-title">Churn by Contract Type</div>', unsafe_allow_html=True)
         contract_churn = pd.crosstab(df['contract_type'], df['churn'], normalize='index') * 100
         fig = px.bar(
             contract_churn,
             barmode='group',
-            title="Churn by Contract Type",
-            labels={'value': 'Percentage (%)', 'contract_type': 'Contract'},
-            color_discrete_sequence=['#667eea', '#f093fb']
+            labels={'value': 'Percentage (%)', 'contract_type': 'Contract Type'},
+            color_discrete_sequence=['#6366F1', '#EF4444']
         )
         fig.update_layout(
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='white'),
-            title=dict(font=dict(size=20)),
-            height=400
+            margin=dict(l=20, r=20, t=20, b=60),
+            height=350,
+            showlegend=True,
+            legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5, title="")
         )
         st.plotly_chart(fig, use_container_width=True)
     
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # ========== SECTION 3: KEY INSIGHTS ==========
-    st.markdown('<div class="section-container">', unsafe_allow_html=True)
-    st.markdown(create_section_header(
-        "What the numbers are telling us.",
-        "Actionable insights from the data."
-    ), unsafe_allow_html=True)
+    st.markdown('<div class="mt-3"></div>', unsafe_allow_html=True)
     
     col1, col2 = st.columns(2)
+    
     with col1:
-        st.markdown(create_insight_card(
-            "💡 Month-to-Month Contracts",
-            f"Customers on month-to-month plans are {((df[df['contract_type']=='Month-to-month']['churn'].mean() / df['churn'].mean() - 1) * 100):.0f}% more likely to churn."
-        ), unsafe_allow_html=True)
-        
-        st.markdown(create_insight_card(
-            "📞 Service Calls Matter",
-            f"Customers with 5+ service calls have a {(df[df['customer_service_calls']>4]['churn'].mean()*100):.0f}% churn rate."
-        ), unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown(create_insight_card(
-            "⏰ First Year is Critical",
-            f"{(df[df['tenure_months']<12]['churn'].mean()*100):.0f}% of customers churn within their first year."
-        ), unsafe_allow_html=True)
-        
-        st.markdown(create_insight_card(
-            "💰 Price Sensitivity",
-            f"High-paying customers (>${df['monthly_charges'].quantile(0.75):.0f}/mo) show {(df[df['monthly_charges']>df['monthly_charges'].quantile(0.75)]['churn'].mean()*100):.0f}% churn rate."
-        ), unsafe_allow_html=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # ========== SECTION 4: INTERACTIVE ANALYSIS ==========
-    st.markdown('<div class="section-container-alt">', unsafe_allow_html=True)
-    st.markdown(create_section_header(
-        "Dive deeper into the patterns.",
-        "Explore the relationships between customer behavior and churn."
-    ), unsafe_allow_html=True)
-    
-    col1, col2 = st.columns(2)
-    with col1:
+        st.markdown('<div class="chart-title">Monthly Charges Impact</div>', unsafe_allow_html=True)
         fig = px.box(
             df, x='churn', y='monthly_charges',
-            title="Monthly Charges Impact",
             labels={'churn': 'Customer Status', 'monthly_charges': 'Monthly Charges ($)'},
             color='churn',
-            color_discrete_sequence=['#667eea', '#f093fb']
+            color_discrete_sequence=['#6366F1', '#EF4444']
         )
         fig.update_layout(
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='white'),
-            title=dict(font=dict(size=20)),
-            height=400
+            margin=dict(l=20, r=20, t=20, b=40),
+            height=350,
+            showlegend=False
         )
+        fig.update_xaxes(ticktext=['Active', 'Churned'], tickvals=[0, 1])
         st.plotly_chart(fig, use_container_width=True)
     
     with col2:
+        st.markdown('<div class="chart-title">Customer Tenure Distribution</div>', unsafe_allow_html=True)
         fig = px.histogram(
             df, x='tenure_months', color='churn',
-            title="Tenure Distribution",
             labels={'tenure_months': 'Months with Company', 'churn': 'Status'},
-            color_discrete_sequence=['#667eea', '#f093fb'],
+            color_discrete_sequence=['#6366F1', '#EF4444'],
             barmode='overlay',
             opacity=0.7
         )
         fig.update_layout(
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='white'),
-            title=dict(font=dict(size=20)),
-            height=400
+            margin=dict(l=20, r=20, t=20, b=40),
+            height=350,
+            showlegend=True,
+            legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5, title="")
         )
         st.plotly_chart(fig, use_container_width=True)
     
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
     
-    # ========== SECTION 5: CALL TO ACTION ==========
-    st.markdown('<div class="section-container">', unsafe_allow_html=True)
-    st.markdown(create_section_header(
-        "Ready to predict and prevent churn?",
-        "Train ML models and start making intelligent predictions."
-    ), unsafe_allow_html=True)
+    # ========== MODEL TRAINING SECTION ==========
+    st.markdown('<div class="section-title">Predictive Models</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-subtitle">Train machine learning models to predict customer churn</div>', unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns([1, 2, 1])
+    col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
-        if st.button("🚀 Train AI Models", use_container_width=True):
-            with st.spinner("Training models... Creating your churn prediction engine..."):
-                progress_bar = st.progress(0)
-                for i in range(100):
-                    time.sleep(0.01)
-                    progress_bar.progress(i + 1)
-                
+        if st.button("Train Models", use_container_width=True, type="primary"):
+            with st.spinner("Training models..."):
                 X, y, _ = preprocess_data(df)
                 results, X_test, y_test, scaler = train_models(X, y)
                 st.session_state['models'] = results
                 st.session_state['X_test'] = X_test
                 st.session_state['y_test'] = y_test
                 st.session_state['scaler'] = scaler
-                
-                st.success("✨ Models trained! Scroll down to see performance.")
+                st.success("✓ Models trained successfully")
     
+    # Display results if models are trained
     if 'models' in st.session_state:
-        st.markdown("---")
+        st.markdown('<div class="mt-4"></div>', unsafe_allow_html=True)
         results = st.session_state['models']
         
-        st.markdown(create_section_header(
-            "Your AI models are ready.",
-            "Here's how they performed."
-        ), unsafe_allow_html=True)
-        
+        # Model performance metrics
         col1, col2, col3 = st.columns(3)
         for i, (name, result) in enumerate(results.items()):
             with [col1, col2, col3][i]:
                 st.markdown(create_metric_card(
                     f"{result['accuracy']:.1%}",
-                    f"{name}<br>Accuracy"
+                    name.upper()
                 ), unsafe_allow_html=True)
         
-        st.markdown("---")
+        st.markdown('<div class="mt-3"></div>', unsafe_allow_html=True)
         
-        # ROC Curves
+        # ROC Curve
+        st.markdown('<div class="chart-title">Model Performance Comparison</div>', unsafe_allow_html=True)
         fig = go.Figure()
+        
+        colors = {'Logistic Regression': '#6366F1', 'Random Forest': '#10B981', 'Gradient Boosting': '#F59E0B'}
+        
         for name, result in results.items():
             fpr, tpr, _ = roc_curve(st.session_state['y_test'], result['probabilities'])
             fig.add_trace(go.Scatter(
                 x=fpr, y=tpr,
                 name=f"{name} (AUC={result['auc']:.3f})",
                 mode='lines',
-                line=dict(width=3)
+                line=dict(width=2, color=colors.get(name, '#6366F1'))
             ))
+        
         fig.add_trace(go.Scatter(
             x=[0, 1], y=[0, 1],
-            name='Random Guess',
+            name='Random',
             mode='lines',
-            line=dict(dash='dash', color='gray', width=2)
+            line=dict(dash='dash', color='#9CA3AF', width=1)
         ))
+        
         fig.update_layout(
-            title=dict(text="Model Performance Comparison", font=dict(size=24, color='white')),
             xaxis_title="False Positive Rate",
             yaxis_title="True Positive Rate",
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='white', size=14),
-            height=500,
-            hovermode='x unified'
+            margin=dict(l=40, r=40, t=40, b=40),
+            height=400,
+            hovermode='x unified',
+            legend=dict(orientation="h", yanchor="bottom", y=-0.25, xanchor="center", x=0.5)
         )
+        
+        fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#E5E7EB')
+        fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#E5E7EB')
+        
         st.plotly_chart(fig, use_container_width=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
