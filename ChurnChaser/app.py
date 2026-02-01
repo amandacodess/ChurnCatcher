@@ -19,29 +19,122 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
 st.markdown("""
-    <style>
-    .main-header {
-        font-size: 3rem;
-        font-weight: bold;
-        text-align: center;
-        color: #FF4B4B;
-        margin-bottom: 1rem;
-    }
-    .sub-header {
-        text-align: center;
-        color: #666;
-        margin-bottom: 2rem;
-    }
-    .metric-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 1.5rem;
-        border-radius: 10px;
-        color: white;
-        text-align: center;
-    }
-    </style>
+<style>
+
+/* ===== FULL PAGE GRADIENT BACKGROUND ===== */
+.stApp {
+    background: linear-gradient(
+        120deg,
+        #0f0c29,
+        #302b63,
+        #24243e
+    );
+    background-size: 300% 300%;
+    animation: gradientShift 18s ease infinite;
+}
+
+/* Subtle animated movement */
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Keep content centered and breathable */
+.block-container {
+    max-width: 1400px;
+    padding-top: 2rem;
+}
+
+/* ===== HEADERS ===== */
+.main-header {
+    font-size: 3.2rem;
+    font-weight: 800;
+    text-align: center;
+    background: linear-gradient(90deg, #7f7cff, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem;
+}
+
+.sub-header {
+    text-align: center;
+    color: #d1d5db;
+    margin-bottom: 3rem;
+}
+
+/* ===== GLASS CARDS ===== */
+.metric-card,
+div[data-testid="stMetric"],
+div[data-testid="stDataFrame"],
+div[data-testid="stPlotlyChart"],
+div[data-testid="stContainer"] > div {
+    background: rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+
+/* ===== METRICS ===== */
+div[data-testid="stMetric"] {
+    padding: 1.2rem;
+    text-align: center;
+}
+
+div[data-testid="stMetric"] label {
+    color: #c7d2fe !important;
+}
+
+div[data-testid="stMetric"] div {
+    color: #ffffff !important;
+    font-weight: 700;
+}
+
+/* ===== SIDEBAR ===== */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(
+        180deg,
+        rgba(30,27,75,0.95),
+        rgba(15,23,42,0.95)
+    );
+    border-right: 1px solid rgba(255,255,255,0.1);
+}
+
+section[data-testid="stSidebar"] * {
+    color: #e5e7eb !important;
+}
+
+/* ===== BUTTONS ===== */
+.stButton > button {
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    color: white;
+    border-radius: 12px;
+    border: none;
+    padding: 0.6rem 1.4rem;
+    font-weight: 600;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stButton > button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(168,85,247,0.4);
+}
+
+/* ===== DATAFRAME ===== */
+.dataframe {
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+/* ===== REMOVE STREAMLIT WHITES ===== */
+header, footer {
+    visibility: hidden;
+}
+
+</style>
 """, unsafe_allow_html=True)
 
 # Helper Functions
